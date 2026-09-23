@@ -184,3 +184,20 @@ healthy. Database credentials must be Render secrets and never committed to GitH
 
 v2.1 does not automatically provision paid infrastructure and does not change the
 safe PR-only publisher policy.
+
+
+## Recovery & Migration (v2.2)
+
+v2.2 adds a guarded backup restore path for schema-v2 backups. `POST /api/admin/restore`
+is admin-authenticated and is dry-run by default. The request must contain
+`{"backup": <schema-v2-backup>}`; it validates the backup and returns counts plus a
+SHA-256 checksum without changing state. A restore happens only when the same request
+also contains `"confirm": true`.
+
+Restore rejects wrong schemas, malformed collections and duplicate approval IDs. A
+confirmed restore writes the atomic local recovery copy and, when PostgreSQL is
+configured, also replaces the durable approval queue and replays backup audit events.
+The restore itself is appended to the audit log.
+
+Use a dry run, compare counts/checksum, export a fresh pre-restore backup, then confirm.
+This endpoint does not expose database credentials and remains behind admin auth.
