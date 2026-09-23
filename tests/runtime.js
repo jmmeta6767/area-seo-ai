@@ -33,7 +33,7 @@ async function main() {
     return {status:res.status, data:await res.json()};
   }
   assert.equal((await fetch(base+'/api/health')).status, 200);
-  assert.equal((await request('/api/health')).data.version, '3.1.1');
+  assert.equal((await request('/api/health')).data.version, '3.2.0');
   assert.equal((await request('/api/health')).data.authRequired, true);
   assert.equal((await request('/api/health')).data.authConfigured, true);
   assert.equal((await fetch(base+'/')).status, 401);
@@ -69,6 +69,8 @@ async function main() {
   assert.equal(invalidReject.status,409);
   assert.equal((await request('/api/approval')).data.items[0].status,'approved');
   assert.equal((await request('/api/content/generate', {})).status, 503);
+  assert.equal((await request('/api/seo/quality-history')).data.items.length,0);
+  assert.equal((await request('/api/seo/quality-history/missing')).status,404);
   assert.equal((await request('/api/seo/quality-review', {})).status, 400);
   assert.equal((await request('/api/seo/quality-review', {content:'บทความแม่สาย'})).status, 503);
   // Mock only the remote Gemini transport: exercise the real HTTP fix handler.
@@ -97,9 +99,28 @@ async function main() {
     assert(prompt.includes(draft.slug));
     modelResult={summary:'ควรเพิ่มเบอร์ติดต่อ',categories:require('../lib/content-quality').CATEGORIES.map(([id])=>({id,score:15,findings:[]}))};
     const reviewed=await request('/api/seo/quality-review',{content:'บทความแม่สาย',primaryKeyword:'แม่สาย'});
-    assert.equal(reviewed.status,200);assert.equal(reviewed.data.overall_score,75);assert.equal(reviewed.data.categories.length,5);
+    assert.equal(reviewed.status,200);
+    assert.equal(reviewed.data.history.saved,true);
+    const qualityList=(await request('/api/seo/quality-history')).data;
+    assert.equal(qualityList.items.length,1);
+    assert.equal(qualityList.storageDurable,false);
+    const savedReport=(await request('/api/seo/quality-history/'+reviewed.data.history.id)).data;
+    assert.equal(savedReport.report.article_hash,reviewed.data.article_hash);
+    assert.equal(savedReport.primaryKeyword,'แม่สาย');
+    assert.equal((await request('/api/admin/backup')).data.quality_history.items.length,1);
+    assert.equal(reviewed.data.overall_score,75);assert.equal(reviewed.data.categories.length,5);
+    const qualityFile=path.join(process.env.DATA_DIR,'quality-history.json');
+    const previousQuality=fs.readFileSync(qualityFile,'utf8');
+    fs.writeFileSync(qualityFile,'{corrupt');
+    const unsaved=await request('/api/seo/quality-review',{content:'บทความแม่สาย'});
+    assert.equal(unsaved.status,200);
+    assert.equal(unsaved.data.overall_score,75);
+    assert.equal(unsaved.data.history.saved,false);
+    assert.equal(fs.readFileSync(qualityFile,'utf8'),'{corrupt');
+    fs.writeFileSync(qualityFile,previousQuality);
     modelResult={summary:'invalid',categories:[]};
     assert.equal((await request('/api/seo/quality-review',{content:'บทความแม่สาย'})).status,502);
+    assert.equal((await request('/api/seo/quality-history')).data.items.length,1);
   } finally { https.request = original; }
   const html = articleDocument({...draft, title:'<script>x</script>'}).html;
   assert(!html.includes('<title><script>'));
@@ -112,7 +133,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'3.1.1'};
+    if(url==='/api/health') data={version:'3.2.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};

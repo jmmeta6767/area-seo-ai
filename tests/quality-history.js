@@ -1,0 +1,40 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createQualityHistory}=require('../lib/quality-history');
+const {inputArticle,validateResult,CATEGORIES}=require('../lib/content-quality');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'seo-quality-history-'));
+const article=inputArticle({title:'เช่าไม้แบบ แม่สาย',primaryKeyword:'ไม้แบบ',content:'บทความทดสอบ'});
+const report=validateResult({summary:'ทดสอบ',categories:CATEGORIES.map(([id])=>({id,score:15,findings:[]}))},article);
+const clone=x=>JSON.parse(JSON.stringify(x));
+async function main(){
+ const dataDir=path.join(root,'local'),local=createQualityHistory({dataDir});await local.init();
+ assert.equal(local.status().storageDurable,false);
+ const first=await local.add(article,report);
+ assert.equal(local.list()[0].overall_score,75);
+ assert.equal(createQualityHistory({dataDir}).detail(first.id).report.article_hash,report.article_hash);
+ const detached=local.detail(first.id);detached.report.overall_score=0;
+ assert.equal(local.detail(first.id).report.overall_score,75);
+ let saved=null,fail=false;
+ const persistent={configured:true,get:async()=>clone(saved),set:async(key,value)=>{assert.equal(key,'quality_history');await new Promise(r=>setTimeout(r,1));if(fail)throw Error('private database detail');saved=clone(value);}};
+ const db=createQualityHistory({dataDir,persistent});await db.init();
+ assert.equal(saved.items.length,1);assert.equal(db.status().storageDurable,true);
+ await Promise.all(Array.from({length:10},()=>db.add(article,report)));
+ assert.equal(db.list().length,11);
+ const restarted=createQualityHistory({dataDir:path.join(root,'empty'),persistent});await restarted.init();assert.equal(restarted.list().length,11);
+ fail=true;
+ await assert.rejects(db.add(article,report),e=>e.status===503&&!e.message.includes('private'));
+ assert.equal(db.list().length,11);assert.equal(saved.items.length,11);assert.equal(db.status().storageDurable,false);
+ fail=false;await db.add(article,report);assert.equal(db.status().storageDurable,true);
+ // Failed local recovery-copy writes do not undo a committed database report.
+ const blocked=path.join(root,'blocked');fs.writeFileSync(blocked,'file');
+ const cacheFailure=createQualityHistory({dataDir:blocked,persistent});await cacheFailure.init();
+ await cacheFailure.add(article,report);assert.equal(cacheFailure.status().storageDurable,true);assert.equal(cacheFailure.status().storageCacheError,true);
+ for(let n=0;n<102;n++)await local.add(article,report);
+ assert.equal(local.list().length,100);assert.equal(local.detail(first.id),null);
+ fs.writeFileSync(path.join(dataDir,'quality-history.json'),'{corrupt');
+ await assert.rejects(local.init());await assert.rejects(local.add(article,report));assert.equal(fs.readFileSync(path.join(dataDir,'quality-history.json'),'utf8'),'{corrupt');
+ saved={version:1,items:[{...first,report:{...report,overall_score:99}}]};
+ await assert.rejects(createQualityHistory({dataDir:path.join(root,'bad-db'),persistent}).init());
+ console.log('PASS: quality history migration, restart, concurrent writes, retention, failures and corruption preservation');
+}
+main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(root,{recursive:true,force:true}));
