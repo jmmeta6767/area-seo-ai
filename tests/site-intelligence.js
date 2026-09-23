@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {createIntelligence,analyzePage,allowedURL,publicIP}=require('../lib/site-intelligence');
+const {createIntelligence,analyzePage,allowedURL,publicIP,parseRobots,canonicalRelation}=require('../lib/site-intelligence');
 const base='https://example.com/';
 const good=(title='เช่าไม้แบบ แม่สาย')=>`<!doctype html><html><head><title>${title}</title><meta name='description' content='ข้อมูลบริการที่ตรวจสอบได้'><meta name='viewport' content='width=device-width'><link rel='canonical' href='https://example.com/'></head><body><h1>เช่าไม้แบบ แม่สาย</h1><img src='x' alt='ไม้แบบ'><a href='/contact'>ติดต่อร้าน</a><script type='application/ld+json'>{"@type":"LocalBusiness"}</script></body></html>`;
 const response=html=>({status:200,headers:{'content-type':'text/html'},html});
@@ -9,12 +9,17 @@ async function main(){
   assert.equal(allowedURL('/page#part',base),'https://example.com/page');
   for(const ip of ['127.0.0.1','10.0.0.1','192.168.1.1','169.254.169.254','::1','::ffff:127.0.0.1','fc00::1','2001:db8::1'])assert.equal(publicIP(ip),false,ip);
   assert.equal(publicIP('8.8.8.8'),true);
+  const robots=parseRobots('User-agent: *\nDisallow: /\nSitemap: https://example.com/sitemap.xml\nSitemap: https://evil.com/sitemap.xml',base);
+  assert.equal(robots.blocksAll,true);assert.deepEqual(robots.sitemaps,['https://example.com/sitemap.xml']);assert.deepEqual(robots.externalSitemaps,['https://evil.com/sitemap.xml']);
+  assert.deepEqual(canonicalRelation('https://example.com/a','https://example.com/a'),{absoluteHttps:true,sameOrigin:true,self:true});
+  assert.equal(canonicalRelation('https://example.com/a','https://evil.com/a').sameOrigin,false);
   assert.equal(analyzePage(base,response(good())).score,100);
   const damaged=analyzePage(base,response(good().replace("alt='ไม้แบบ'",'').replace('</head>',"<meta name='robots' content='noindex'></head>")));
   assert.equal(damaged.score,75);assert(damaged.issues.some(x=>x.key==='indexable'));
   assert(!analyzePage(base,response(good().replace("alt='ไม้แบบ'","alt=''"))).issues.some(x=>x.key==='alt'));
   assert.equal(analyzePage(base,{error:'timeout'}).score,null);
   assert(analyzePage(base,response(good().replace('{"@type":"LocalBusiness"}','bad'))).issues.some(x=>x.key==='schema'));
+  assert(analyzePage(base,response(good().replace("https://example.com/","https://evil.com/"))).issues.some(x=>x.key==='canonical-origin'));
   assert(!analyzePage(base,response(good().replace('</head>',"<!-- <meta name='robots' content='noindex'> --></head>"))).issues.some(x=>x.key==='indexable'));
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'seo-history-'));
   try{
@@ -44,6 +49,8 @@ async function main(){
     const brokenResult=await brokenChild.scan();assert(brokenResult.partial);assert.equal(brokenResult.pages.length,1);assert.equal(brokenResult.average,100);
     const complete=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>response(url.endsWith('/sitemap.xml')?'<urlset>'+Array.from({length:35},(_,i)=>'<loc>https://example.com/full'+i+'</loc>').join('')+'</urlset>':good(url))});
     const full=await complete.scan();assert.equal(full.pages.length,36);assert.equal(full.partial,false);
+    const robotsAware=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>{if(url.endsWith('/robots.txt'))return response('User-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml');if(url.endsWith('/sitemap.xml'))return response('<urlset><loc>https://example.com/page</loc></urlset>');return response(good(url));}});
+    const robotsResult=await robotsAware.scan();assert.equal(robotsResult.robots.status,200);assert.equal(robotsResult.robots.declaresRootSitemap,true);assert.equal(robotsResult.siteIssues.length,0);
     const discoveryCap=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>response(url.endsWith('/sitemap.xml')?'<urlset>'+Array.from({length:5001},(_,i)=>'<loc>https://example.com/capped'+i+'</loc>').join('')+'</urlset>':good(url))});
     const cappedDiscovery=await discoveryCap.scan();assert.equal(cappedDiscovery.discovered,5000);assert.equal(cappedDiscovery.discoveryLimited,true);assert.equal(cappedDiscovery.pages.length,100);assert(cappedDiscovery.partial);
     let release;const pending=new Promise(r=>release=r);const busy=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{await pending;return response(good());}});const work=busy.scan();await assert.rejects(busy.scan(),e=>e.status===409);release();await work;
