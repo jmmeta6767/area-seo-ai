@@ -19,6 +19,7 @@ async function request(method,path,body){
   if(method==="GET"&&path.includes("/pulls?"))return {status:200,data:[]};
   if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};
   if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"open",merged:false,mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};
+  if(method==="PATCH"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",state:"closed"}};
   if(method==="GET"&&path.endsWith("/commits/head8/status"))return {status:200,data:{state:"success",statuses:[{context:"CI",state:"success",description:"passed",target_url:"https://github.com/example/actions"}]}};
   throw Error("Unexpected mock call "+method+" "+path);
 }
