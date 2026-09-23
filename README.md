@@ -15,10 +15,11 @@ resolved/new issues, a prioritized improvement list, history selection and JSON 
 No Gemini key is needed for this collector. The scan button starts a scan; it is not
 an automatic recurring job.
 
-- Same-origin HTTPS crawl, public-address DNS checks, maximum 30 pages and three
+- Same-origin HTTPS crawl, public-address DNS checks, maximum 100 pages and three
   concurrent requests, 2 MB/request, 12-second request deadline and bounded redirects.
-- Reads the top-level `/sitemap.xml`. Sitemap indexes are explicitly reported as
-  partial; nested sitemaps and browser-rendered content are not crawled yet.
+- Reads `/sitemap.xml` and follows same-origin sitemap indexes, up to 10 sitemap
+  files and 5,000 discovered URLs. Unsupported/failed maps and limits are reported
+  as partial. Browser-rendered content is not crawled.
 - Atomic history writes retain the latest 60 snapshots. Failed fetches have no score
   and are excluded from averages and resolved-issue counts. Deltas compare the last
   successful snapshot for the same URL, site and scoring version.
@@ -340,3 +341,17 @@ settings, approval status or publishing behavior are changed by this feature.
 Tests cover real review/list/detail/backup routes with mocked Gemini transport,
 concurrent saves, restart/migration, retention, database failure, cache failure and
 corrupt-data preservation. Live Gemini and PostgreSQL still need configured credentials.
+
+
+## Broader Website Scans (v3.3)
+
+Website Intelligence now audits up to 100 pages with the existing three-request
+concurrency limit. It follows nested sitemap indexes on the configured HTTPS origin,
+deduplicates sitemap and page URLs, and supports CDATA locations. Sitemap discovery
+is bounded to 10 files and 5,000 unique page URLs; every existing fetch still has the
+12-second/2 MB/redirect/public-address guards. External sitemap URLs are not fetched.
+
+Snapshots record sitemap count and whether discovery was capped. The UI reports a
+lower-bound URL count when capped. Failed child maps preserve discovered pages and
+mark the result partial. Existing score history and onpage-1 comparisons remain valid;
+this extends discovery without changing scoring weights or claiming Google ranking.
