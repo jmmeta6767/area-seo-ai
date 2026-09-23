@@ -1,0 +1,11 @@
+const assert=require("assert");
+const escapeHtml=x=>String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const slugify=x=>String(x||"").replace(/[<>]/g,"").trim().toLowerCase().replace(/[^a-z0-9ก-๙]+/g,"-").replace(/^-|-$/g,"").slice(0,100);
+assert.equal(escapeHtml('<script>alert("x")</script>'),'&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+assert.equal(slugify("เช่าไม้แบบ แม่สาย <script>"),"เช่าไม้แบบ-แม่สาย-script");
+const allowed=item=>item.status==="approved"&&item.audit?.passed===true&&!item.duplicate;
+assert.equal(allowed({status:"ready_for_review",audit:{passed:true},duplicate:false}),false);
+assert.equal(allowed({status:"approved",audit:{passed:false},duplicate:false}),false);
+assert.equal(allowed({status:"approved",audit:{passed:true},duplicate:true}),false);
+assert.equal(allowed({status:"approved",audit:{passed:true},duplicate:false}),true);
+console.log("publisher safety tests passed");
