@@ -1,0 +1,37 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createIntelligence,analyzePage,allowedURL,publicIP}=require('../lib/site-intelligence');
+const base='https://example.com/';
+const good=(title='เช่าไม้แบบ แม่สาย')=>`<!doctype html><html><head><title>${title}</title><meta name='description' content='ข้อมูลบริการที่ตรวจสอบได้'><meta name='viewport' content='width=device-width'><link rel='canonical' href='https://example.com/'></head><body><h1>เช่าไม้แบบ แม่สาย</h1><img src='x' alt='ไม้แบบ'><a href='/contact'>ติดต่อร้าน</a><script type='application/ld+json'>{"@type":"LocalBusiness"}</script></body></html>`;
+const response=html=>({status:200,headers:{'content-type':'text/html'},html});
+async function main(){
+  for(const raw of ['http://example.com','https://evil.com/','https://user:pass@example.com/','javascript:alert(1)'])assert.throws(()=>allowedURL(raw,base));
+  assert.equal(allowedURL('/page#part',base),'https://example.com/page');
+  for(const ip of ['127.0.0.1','10.0.0.1','192.168.1.1','169.254.169.254','::1','::ffff:127.0.0.1','fc00::1','2001:db8::1'])assert.equal(publicIP(ip),false,ip);
+  assert.equal(publicIP('8.8.8.8'),true);
+  assert.equal(analyzePage(base,response(good())).score,100);
+  const damaged=analyzePage(base,response(good().replace("alt='ไม้แบบ'",'').replace('</head>',"<meta name='robots' content='noindex'></head>")));
+  assert.equal(damaged.score,75);assert(damaged.issues.some(x=>x.key==='indexable'));
+  assert(!analyzePage(base,response(good().replace("alt='ไม้แบบ'","alt=''"))).issues.some(x=>x.key==='alt'));
+  assert.equal(analyzePage(base,{error:'timeout'}).score,null);
+  assert(analyzePage(base,response(good().replace('{"@type":"LocalBusiness"}','bad'))).issues.some(x=>x.key==='schema'));
+  assert(!analyzePage(base,response(good().replace('</head>',"<!-- <meta name='robots' content='noindex'> --></head>"))).issues.some(x=>x.key==='indexable'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'seo-history-'));
+  try{
+    let generation=0,seen=[];
+    const fetcher=async url=>{seen.push(url);if(url.endsWith('sitemap.xml'))return response('<urlset><url><loc>https://example.com/page</loc></url><url><loc>https://evil.com/private</loc></url></urlset>');return response(generation?good():good().replace(/<meta name='description'[^>]+>/,''));};
+    const service=createIntelligence({dataDir:dir,base,fetcher,cooldownMs:0});
+    let first=await service.scan();assert.equal(first.average,90);assert.equal(first.pages.length,2);assert(first.partial);assert(!seen.includes('https://evil.com/private'));assert.equal(first.delta,null);
+    generation=1;let second=await service.scan();assert.equal(second.average,100);assert.equal(second.delta,10);assert.equal(second.resolvedCount,2);assert.equal(second.comparedPages,2);assert(second.pages[0].issues.some(x=>x.key==='duplicate-title'));
+    const restarted=createIntelligence({dataDir:dir,base,fetcher,cooldownMs:0});assert.equal(restarted.history().length,2);assert.equal(restarted.detail(first.id).average,90);
+    const failed=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{throw Error('offline');}});let failure=await failed.scan();assert.equal(failure.average,null);assert.equal(failure.resolvedCount,0);assert.equal(failure.pages[0].delta,null);
+    assert.equal((await restarted.scan()).pages[0].previousScore,100);
+    const limited=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>url.endsWith('sitemap.xml')?response('<urlset>'+Array.from({length:40},(_,i)=>`<loc>https://example.com/p${i}</loc>`).join('')+'</urlset>'):response(good())});assert.equal((await limited.scan()).pages.length,30);
+    let release;const pending=new Promise(r=>release=r);const busy=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{await pending;return response(good());}});const work=busy.scan();await assert.rejects(busy.scan(),e=>e.status===409);release();await work;
+    const cooldown=createIntelligence({dataDir:dir,base,fetcher});await cooldown.scan();await assert.rejects(cooldown.scan(),e=>e.status===429);
+    for(let i=0;i<61;i++)await restarted.scan();assert.equal(restarted.history().length,60);
+    fs.writeFileSync(path.join(dir,'site-history.json'),'broken');await assert.rejects(restarted.scan());assert.equal(fs.readFileSync(path.join(dir,'site-history.json'),'utf8'),'broken');
+    console.log('PASS: analysis, history persistence, deltas, resolved issues, failure exclusion, crawl limits, concurrency, retention and URL guards');
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});
