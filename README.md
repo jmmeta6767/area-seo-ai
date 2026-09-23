@@ -404,3 +404,27 @@ Every successful restore appends a fresh `backup_restored` audit event after the
 restored audit history. The endpoint never returns database credentials. A dry run
 should still be performed first and its component counts/checksums reviewed before
 sending `"confirm": true`.
+
+
+## Backup & Recovery Console (v3.6)
+
+The private admin UI now includes a **Backup & Recovery Center** for the schema-v3
+state bundle. It shows the current storage mode/readiness, downloads the authenticated
+`/api/admin/backup` response as JSON, accepts schema-v2/v3 backup files, and always
+runs a dry-run before the restore action can be enabled.
+
+A successful dry-run returns component counts plus a bundle checksum. The operator must
+type `RESTORE` before confirmation. The browser sends the dry-run checksum back as
+`expectedChecksum`; the server compares it to the validated backup before any write.
+If the file changes between validation and confirmation, restore stops with HTTP 409
+and requires another dry-run.
+
+The recovery endpoint allows up to 16 MB request bodies while normal JSON endpoints
+retain the existing 1 MB limit. The browser applies the same 16 MB file guard before
+upload. This larger limit is scoped only to authenticated recovery because complete
+Website Intelligence history can be significantly larger than ordinary admin requests.
+
+The UI never displays database URLs, passwords, Google credentials, or GitHub tokens.
+File-only Render deployments are clearly labeled as non-durable; PostgreSQL is shown
+as durable only when the storage-health endpoint reports both `durable:true` and
+`ready:true`.
