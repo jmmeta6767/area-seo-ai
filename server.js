@@ -37,7 +37,7 @@ const prPublisher=require("./lib/github-pr-publisher").createClient();
 const performanceLogic=require("./lib/performance-comparison");
 const googlePerformance=require("./lib/google-performance");
 const adminAuth=require("./lib/admin-auth").createAdminAuth();
-const mutationAllowed=req=>{if(!["POST","PUT","PATCH","DELETE"].includes(req.method))return true;let site=String(req.headers["sec-fetch-site"]||"").toLowerCase();if(site==="cross-site")return false;let expected;try{expected=new URL(process.env.ADMIN_ORIGIN||BUSINESS_PROFILE.url).origin}catch{return false}for(const key of ["origin","referer"]){let value=req.headers[key];if(value){try{if(new URL(value).origin!==expected)return false}catch{return false}}}return true};
+const {mutationAllowed}=require("./lib/mutation-guard");
 const api=async(req,res,u)=>{try{
 if(!mutationAllowed(req))return json(res,403,{error:"Cross-site mutation rejected"});
 if(req.method==="GET"&&u.pathname==="/api/admin/backup")return json(res,200,{schema_version:"2",exported_at:new Date().toISOString(),approvals:queueRead(),approval_audit:approvalStore.events(500),persistence:{configured:persistent.configured,ready:persistenceReady,kind:persistent.kind},site_history:intelligence.history(),site_history_full:intelligence.exportHistory(),storage:intelligence.status()});
