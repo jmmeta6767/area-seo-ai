@@ -189,16 +189,16 @@ safe PR-only publisher policy.
 
 ## Recovery & Migration (v2.2)
 
-v2.2 adds a guarded backup restore path for schema-v2 backups. `POST /api/admin/restore`
-is admin-authenticated and is dry-run by default. The request must contain
-`{"backup": <schema-v2-backup>}`; it validates the backup and returns counts plus a
-SHA-256 checksum without changing state. A restore happens only when the same request
-also contains `"confirm": true`.
+v2.2 introduced the guarded backup restore path. The current endpoint remains
+admin-authenticated and dry-run by default. It accepts legacy schema-v2 approval-only
+backups and the complete schema-v3 backup emitted by `GET /api/admin/backup`.
+A restore happens only when the same request also contains `"confirm": true`.
 
-Restore rejects wrong schemas, malformed collections and duplicate approval IDs. A
-confirmed restore writes the atomic local recovery copy and, when PostgreSQL is
-configured, also replaces the durable approval queue and replays backup audit events.
-The restore itself is appended to the audit log.
+Dry-run validates every included component and returns per-component counts and
+SHA-256 checksums plus one bundle checksum without changing state. Schema v3 requires
+approval queue, approval audit, `site_history_full`, and `quality_history`.
+Malformed collections, duplicate approval IDs, invalid score history, invalid quality
+reports, and bad audit timestamps are rejected before writes begin.
 
 Use a dry run, compare counts/checksum, export a fresh pre-restore backup, then confirm.
 This endpoint does not expose database credentials and remains behind admin auth.
@@ -379,3 +379,28 @@ non-self canonicals are reported as explicit issues without changing the histori
 
 This feature still does not execute target-site JavaScript, inspect Google index
 coverage, or verify every internal-link destination. Those remain separate checks.
+
+
+## Complete Backup & Recovery (v3.5)
+
+The authenticated admin backup is now schema v3 and contains the complete restorable
+state bundle: approval queue, approval audit, full Website Intelligence snapshots and
+five-category article quality history. Schema v2 remains accepted for legacy
+approval-only restores and never clears newer history fields that were absent from the
+old format.
+
+Confirmed schema-v3 recovery validates the entire bundle before any mutation. In file
+mode, all local stores keep atomic per-file writes and the recovery coordinator captures
+the previous state so it can restore the prior queue, audit, site history and quality
+history if a later write fails.
+
+When PostgreSQL is connected, schema-v3 recovery writes approval queue, site history,
+quality history and audit history inside one database transaction. Local recovery
+copies are then refreshed. If a local refresh fails after the database commit, the
+coordinator attempts a compensating database transaction plus local rollback instead of
+reporting a partial success.
+
+Every successful restore appends a fresh `backup_restored` audit event after the
+restored audit history. The endpoint never returns database credentials. A dry run
+should still be performed first and its component counts/checksums reviewed before
+sending `"confirm": true`.
