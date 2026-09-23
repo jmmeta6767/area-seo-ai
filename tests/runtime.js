@@ -39,7 +39,7 @@ async function main() {
   assert.equal((await fetch(base+'/')).status, 401);
   assert.equal((await fetch(base+'/api/approval')).status, 401);
   assert.equal((await request('/api/business-profile')).data.schema['@id'], 'https://example.com/#organization');
-  const readiness=(await request('/api/admin/readiness')).data; assert.equal(readiness.ready,false); assert(readiness.blockers.includes('persistent_storage'));
+  const readiness=(await request('/api/admin/readiness')).data; assert.equal(readiness.ready,false); assert(readiness.blockers.includes('persistent_storage')); assert(readiness.blockers.includes('google_performance'));
   assert.equal((await fetch(base+'/',{headers:{Authorization:auth}})).status, 200);
   assert.deepEqual((await request('/api/intelligence/history')).data.items, []);
   assert.equal((await request('/api/intelligence/snapshot/missing')).status, 404);
