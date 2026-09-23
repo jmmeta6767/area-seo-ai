@@ -274,3 +274,15 @@ origin when it differs from `PUBLIC_SITE_URL`.
 An authenticated `POST /api/approval/:id/publish-cancel` closes an unmerged publisher
 pull request and returns the draft to `needs_changes`. Cancellation is audited and
 does not delete branches. Merged PRs cannot be cancelled through this endpoint.
+
+
+## Publisher Recovery (v2.8)
+
+A published draft can create a recovery pull request with
+`POST /api/approval/:id/publish-revert`. The source publisher PR must already be
+merged. Recovery never writes directly to `main` and never auto-merges.
+
+The recovery branch is based on the current public-site `main`. It creates a commit
+whose tree restores the pre-merge tree of the recorded publisher merge commit, then
+opens a normal review PR. Repeated requests for the same draft return the recorded
+revert PR instead of creating another one. Every recovery PR creation is audited.
