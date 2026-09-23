@@ -27,7 +27,7 @@ async function main() {
     const res = await fetch(base+route, data===undefined?{}:{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
     return {status:res.status, data:await res.json()};
   }
-  assert.equal((await request('/api/health')).data.version, '1.4.0');
+  assert.equal((await request('/api/health')).data.version, '1.5.0');
   assert.equal((await request('/api/business-profile')).data.schema['@id'], 'https://example.com/#organization');
   assert.equal((await fetch(base+'/')).status, 200);
   assert.deepEqual((await request('/api/intelligence/history')).data.items, []);
@@ -46,10 +46,13 @@ async function main() {
   assert.equal((await request('/api/approval/'+id+'/approve', {})).data.status, 'approved');
   assert.equal((await request('/api/approval/'+id+'/reject', {})).data.status, 'needs_changes');
   assert.equal((await request('/api/content/generate', {})).status, 503);
+  assert.equal((await request('/api/seo/quality-review', {})).status, 400);
+  assert.equal((await request('/api/seo/quality-review', {content:'บทความแม่สาย'})).status, 503);
   // Mock only the remote Gemini transport: exercise the real HTTP fix handler.
   const https = require('node:https');
   const original = https.request;
   let prompt;
+  let modelResult={title:draft.title};
   process.env.GEMINI_API_KEY = 'test-only';
   https.request = (options, callback) => {
     const req = new EventEmitter();
@@ -57,7 +60,7 @@ async function main() {
     req.end = payload=>{
       prompt = JSON.parse(payload).contents[0].parts[0].text;
       const res = new EventEmitter(); res.statusCode=200; callback(res);
-      res.emit('data', JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({title:draft.title})}]}}]}));
+      res.emit('data', JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(modelResult)}]}}]}));
       res.emit('end');
     };
     return req;
@@ -69,6 +72,11 @@ async function main() {
     assert.deepEqual(fixed.data.schema, draft.schema);
     assert.equal(fixed.data.audit.score, 100);
     assert(prompt.includes(draft.slug));
+    modelResult={summary:'ควรเพิ่มเบอร์ติดต่อ',categories:require('../lib/content-quality').CATEGORIES.map(([id])=>({id,score:15,findings:[]}))};
+    const reviewed=await request('/api/seo/quality-review',{content:'บทความแม่สาย',primaryKeyword:'แม่สาย'});
+    assert.equal(reviewed.status,200);assert.equal(reviewed.data.overall_score,75);assert.equal(reviewed.data.categories.length,5);
+    modelResult={summary:'invalid',categories:[]};
+    assert.equal((await request('/api/seo/quality-review',{content:'บทความแม่สาย'})).status,502);
   } finally { https.request = original; }
   const html = articleDocument({...draft, title:'<script>x</script>'}).html;
   assert(!html.includes('<title><script>'));
@@ -81,7 +89,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'1.4.0'};
+    if(url==='/api/health') data={version:'1.5.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};

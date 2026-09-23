@@ -51,3 +51,30 @@ script Auto Fix wiring, audit fixtures, score comparisons, restart persistence,
 retention, corrupt-file preservation, failed pages, crawl limits, duplicate metadata,
 concurrent scan rejection and URL/address guards. Remote transport is mocked in
 collector tests; live Search Console, Gemini and Render are separate deployment checks.
+
+## Content Quality Auditor (v1.5)
+
+In Article Workspace, enter the primary keyword and use **AI รีเช็คคุณภาพ 5 หมวด**.
+`POST /api/seo/quality-review` accepts string fields `title`, `meta`, `content`,
+`cta`, `primaryKeyword`, and `service`. Content is required, maximum 50,000
+characters; the other fields allow 2,000 characters each. Requires the configured
+Gemini key. It makes no publishing or approval changes.
+
+The JSON response has `schema_version`, `article_hash`, `reviewed_at`,
+`overall_score`, `verdict`, `summary`, five `categories`, `priority_fixes`,
+`measurements`, and `limitations`. Categories are `on_page_seo`, `local_seo`,
+`conversion_cta`, `accuracy_value`, and `readability_structure`, each scored 0–20.
+Findings contain `field`, `severity`, `issue`, exact quoted `evidence` (or empty for
+missing information), and `fix`. The server validates the structure and evidence,
+computes the total itself, and rejects malformed model output with HTTP 502.
+Any high-severity finding results in `needs_revision` regardless of total score.
+
+Measurements include heading order, bullet/table presence, local place mentions,
+verified phone presence (064-989-3124 or +66 64 989 3124), and literal keyword
+phrase occurrences per 100 approximate Thai word segments. No ideal keyword
+percentage is asserted. Mae Chan is context, not verified delivery coverage.
+Accuracy assessment is based on the supplied content, not external fact checking.
+
+The UI displays/downloads JSON, clears old reports after input edits, and refuses
+a response when the article changed during the request. Reports are not persisted
+as website scan history; export JSON to retain an individual content review.
