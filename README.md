@@ -224,3 +224,17 @@ File mode reports `durable:false` and `ready:false`.
 After `DATABASE_URL` is linked in Render, use this endpoint before and after a redeploy
 to prove that the same durable state is readable. Connection strings and passwords are
 never returned.
+
+
+## Publisher Source of Truth (v2.5)
+
+Publisher package generation now reads `articles.html`, `sitemap.xml`, the article
+slug and the base commit directly from the public-site GitHub `main` branch. It no
+longer treats the currently deployed Render HTML as the source of truth.
+
+Immediately before branch creation the publisher resolves `main` again. If the SHA
+changed since package generation, publishing stops with HTTP 409 so the package can be
+rebuilt instead of overwriting newer work. An article file already present on main also
+blocks publication. GitHub content paths are encoded by path segment.
+
+This closes the stale-deploy race while preserving the PR-only/no-auto-merge policy.
