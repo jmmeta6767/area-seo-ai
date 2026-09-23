@@ -238,3 +238,28 @@ rebuilt instead of overwriting newer work. An article file already present on ma
 blocks publication. GitHub content paths are encoded by path segment.
 
 This closes the stale-deploy race while preserving the PR-only/no-auto-merge policy.
+
+
+## Durable Website Scores (v2.6)
+
+Website Intelligence now uses the existing PostgreSQL adapter when DATABASE_URL is
+configured. Startup loads the complete `site_history` state and refreshes the local
+recovery copy. If the database has no history yet, an existing valid local history is
+migrated once. Invalid data fails closed and is not overwritten.
+
+Each scan awaits the database write before reporting success. Failed writes return
+HTTP 503, leave the previous history intact, and mark score-storage readiness false.
+A local-cache write failure after a successful database write is reported separately;
+it does not incorrectly mark the durable write as failed. Without DATABASE_URL,
+file mode and its explicit Render Free durability warning remain unchanged.
+
+Admin backup adds `site_history_full` containing complete snapshots and page findings;
+the existing `site_history` summaries remain for compatibility. The existing approval
+restore route does not restore this new field yet. Readiness now includes a separate
+`score_history_storage` check, so durable approval storage alone cannot hide missing
+score durability. Deployment remains single-instance; multi-writer synchronization
+is not provided by the in-memory history cache.
+
+Tests cover migration, restart with an empty local filesystem, database-write failure,
+corrupt data preservation and recovery-copy failure using an isolated database adapter.
+A live PostgreSQL verification still requires a configured DATABASE_URL.

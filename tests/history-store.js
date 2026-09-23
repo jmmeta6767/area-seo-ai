@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createHistoryStore}=require('../lib/history-store');
+const {createIntelligence}=require('../lib/site-intelligence');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'seo-durable-'));
+const clone=x=>JSON.parse(JSON.stringify(x));
+let saved=null,fail=false,writes=0;
+const database={configured:true,get:async key=>{assert.equal(key,'site_history');if(fail)throw Error('secret connection detail');return clone(saved);},set:async(key,value)=>{assert.equal(key,'site_history');if(fail)throw Error('secret connection detail');writes++;saved=clone(value);}};
+const fixture={version:1,snapshots:[{id:'first',site:'https://example.com/',scannedAt:new Date().toISOString(),pages:[]}]};
+(async()=>{
+ const dir=path.join(root,'original');fs.mkdirSync(dir);fs.writeFileSync(path.join(dir,'site-history.json'),JSON.stringify(fixture));
+ const store=createHistoryStore({dataDir:dir,persistent:database});assert.throws(()=>store.read(),e=>e.status===503);await store.init();assert.equal(saved.snapshots[0].id,'first');assert(store.status().storageDurable);
+ const next=clone(fixture);next.snapshots[0].id='second';await store.save(next);assert.equal(writes,2);
+ fs.rmSync(dir,{recursive:true});const restarted=createHistoryStore({dataDir:dir,persistent:database});await restarted.init();assert.equal(restarted.read().snapshots[0].id,'second');assert(fs.existsSync(path.join(dir,'site-history.json')));
+ const returned=restarted.read();returned.snapshots.length=0;assert.equal(restarted.read().snapshots.length,1);
+ fail=true;await assert.rejects(restarted.save(fixture),e=>e.status===503&&!e.message.includes('secret'));assert.equal(restarted.read().snapshots[0].id,'second');assert.equal(saved.snapshots[0].id,'second');assert(!restarted.status().storageDurable);assert.equal(JSON.parse(fs.readFileSync(path.join(dir,'site-history.json'))).snapshots[0].id,'second');
+ fail=false;await restarted.save(fixture);assert(restarted.status().storageDurable);
+ const cachePath=path.join(root,'not-a-directory');fs.writeFileSync(cachePath,'keep');const cacheFailure=createHistoryStore({dataDir:cachePath,persistent:database});await cacheFailure.init();await cacheFailure.save(next);assert(cacheFailure.status().storageDurable);assert(cacheFailure.status().storageCacheError);assert.equal(saved.snapshots[0].id,'second');
+ fail=true;const unavailable=createHistoryStore({dataDir:dir,persistent:database});await assert.rejects(unavailable.init(),e=>!e.message.includes('secret'));assert.throws(()=>unavailable.read(),e=>e.status===503);fail=false;
+ saved={bad:true};await assert.rejects(createHistoryStore({dataDir:dir,persistent:database}).init());assert.deepEqual(saved,{bad:true});saved=null;
+ fs.writeFileSync(path.join(dir,'site-history.json'),'corrupt');await assert.rejects(createHistoryStore({dataDir:dir,persistent:database}).init());assert.equal(saved,null);assert.equal(fs.readFileSync(path.join(dir,'site-history.json'),'utf8'),'corrupt');
+ const clean=path.join(root,'collector');const collector=createIntelligence({dataDir:clean,base:'https://example.com/',persistent:database,cooldownMs:0,fetcher:async url=>({status:200,headers:{},html:url.endsWith('sitemap.xml')?'<urlset><loc>https://example.com/</loc></urlset>':'<title>แม่สาย</title><h1>ไม้แบบ</h1>'})});await collector.init();const snapshot=await collector.scan();assert.equal(saved.snapshots[0].id,snapshot.id);
+ fs.rmSync(clean,{recursive:true});const again=createIntelligence({dataDir:clean,base:'https://example.com/',persistent:database});await again.init();assert.equal(again.latest().id,snapshot.id);assert.equal(again.exportHistory().snapshots[0].pages[0].url,'https://example.com/');
+ console.log('PASS: durable score history, migration, empty-filesystem restart, DB-first writes, write failure, corruption and cache failure');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(root,{recursive:true,force:true}));
