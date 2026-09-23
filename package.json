@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "node --check server.js && node --check public/app.js && node --check public/analytics.js && node --check public/intelligence.js && node tests/approval-store.js && node tests/recovery.js && node tests/runtime.js && node tests/site-intelligence.js && node --check public/quality-review.js && node --check public/recovery.js && node tests/content-quality.js && node tests/public-site-publisher.js && node tests/github-pr-publisher.js && node tests/history-store.js && node tests/performance-comparison.js && node tests/google-performance.js && node tests/mutation-guard.js && node tests/analytics-ui.js && node tests/quality-history.js && node tests/quality-history-ui.js"
+    "test": "node --check server.js && node --check public/app.js && node --check public/analytics.js && node --check public/intelligence.js && node tests/approval-store.js && node tests/recovery.js && node tests/recovery-ui.js && node tests/runtime.js && node tests/site-intelligence.js && node --check public/quality-review.js && node --check public/recovery.js && node tests/content-quality.js && node tests/public-site-publisher.js && node tests/github-pr-publisher.js && node tests/history-store.js && node tests/performance-comparison.js && node tests/google-performance.js && node tests/mutation-guard.js && node tests/analytics-ui.js && node tests/quality-history.js && node tests/quality-history-ui.js"
   },
   "engines": {
     "node": ">=20"
