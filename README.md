@@ -212,3 +212,15 @@ blockers instead of treating a successful web deploy as production-ready.
 
 The publisher policy remains pull-request-only. A file-only deployment is intentionally
 reported as blocked by `persistent_storage`.
+
+
+## Database Link Verification (v2.4)
+
+v2.4 makes the final Render database-link test observable without exposing credentials.
+The authenticated `/api/admin/storage-health` endpoint reports PostgreSQL database
+name, role, server version, latency, state-row count, audit-row count and readiness.
+File mode reports `durable:false` and `ready:false`.
+
+After `DATABASE_URL` is linked in Render, use this endpoint before and after a redeploy
+to prove that the same durable state is readable. Connection strings and passwords are
+never returned.
