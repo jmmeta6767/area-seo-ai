@@ -263,3 +263,14 @@ is not provided by the in-memory history cache.
 Tests cover migration, restart with an empty local filesystem, database-write failure,
 corrupt data preservation and recovery-copy failure using an isolated database adapter.
 A live PostgreSQL verification still requires a configured DATABASE_URL.
+
+
+## Publisher Safety (v2.7)
+
+v2.7 rejects browser cross-site mutation requests using Fetch Metadata and validates
+Origin/Referer when those headers are present. Set `ADMIN_ORIGIN` to the admin site's
+origin when it differs from `PUBLIC_SITE_URL`.
+
+An authenticated `POST /api/approval/:id/publish-cancel` closes an unmerged publisher
+pull request and returns the draft to `needs_changes`. Cancellation is audited and
+does not delete branches. Merged PRs cannot be cancelled through this endpoint.
