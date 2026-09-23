@@ -201,3 +201,14 @@ The restore itself is appended to the audit log.
 
 Use a dry run, compare counts/checksum, export a fresh pre-restore backup, then confirm.
 This endpoint does not expose database credentials and remains behind admin auth.
+
+
+## Production Readiness Gate (v2.3)
+
+`GET /api/admin/readiness` is an authenticated, non-destructive readiness gate. It
+checks that admin authentication is enforced, the PR-only GitHub publisher is configured,
+durable PostgreSQL is connected, and Gemini is configured. The response lists explicit
+blockers instead of treating a successful web deploy as production-ready.
+
+The publisher policy remains pull-request-only. A file-only deployment is intentionally
+reported as blocked by `persistent_storage`.
