@@ -124,3 +124,20 @@ This endpoint is package-only. It does not write GitHub, merge `main`, or unlock
 the live publisher. The next publisher stage should create a dedicated branch and
 pull request in `jmmeta6767/area-maibab-public-site`, then require review before
 merge.
+
+
+## Branch + Pull Request Publisher (v1.8)
+
+v1.8 can turn an approved publisher package into a reviewable GitHub pull request.
+Set `GITHUB_PUBLISH_TOKEN` server-side with the minimum repository permissions:
+Contents write and Pull requests write for `jmmeta6767/area-maibab-public-site`.
+
+`POST /api/approval/:id/publish-pr` requires the existing admin authentication,
+human-approved status, passing SEO audit, unique slug preflight and the v1.7 package
+guards. It creates only an `area-seo/article-<slug>` branch, writes only the new
+article, `articles.html`, and `sitemap.xml`, then opens a PR against `main`.
+It never merges the PR and never pushes directly to `main`.
+
+The approval snapshot records the PR number, URL, branch and written commit SHAs and
+moves to `publishing` so the operation is auditable. Keep the token out of GitHub
+source and configure it only as a Render secret.
