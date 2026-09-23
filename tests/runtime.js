@@ -58,7 +58,7 @@ async function main() {
   assert(!preview.includes('<script>'));
   assert(preview.includes('&lt;script&gt;'));
   assert.equal((await request('/api/approval/'+id+'/approve', {})).data.status, 'approved');
-  assert.equal((await request('/api/approval/'+id+'/reject', {})).data.status, 'needs_changes');
+  const invalidReject=await request('/api/approval/'+id+'/reject', {});\n  assert.equal(invalidReject.status,409);\n  assert.equal((await request('/api/approval')).data.items[0].status,'approved');
   assert.equal((await request('/api/content/generate', {})).status, 503);
   assert.equal((await request('/api/seo/quality-review', {})).status, 400);
   assert.equal((await request('/api/seo/quality-review', {content:'บทความแม่สาย'})).status, 503);
