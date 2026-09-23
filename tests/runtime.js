@@ -27,9 +27,12 @@ async function main() {
     const res = await fetch(base+route, data===undefined?{}:{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
     return {status:res.status, data:await res.json()};
   }
-  assert.equal((await request('/api/health')).data.version, '1.3.1');
+  assert.equal((await request('/api/health')).data.version, '1.4.0');
   assert.equal((await request('/api/business-profile')).data.schema['@id'], 'https://example.com/#organization');
   assert.equal((await fetch(base+'/')).status, 200);
+  assert.deepEqual((await request('/api/intelligence/history')).data.items, []);
+  assert.equal((await request('/api/intelligence/snapshot/missing')).status, 404);
+  assert.equal((await fetch(base+'/intelligence.js')).status, 200);
   assert.equal((await request('/api/seo/audit', draft)).data.score, 100);
   assert.equal((await request('/api/approval', {...draft, slug:''})).status, 422);
   const created = await request('/api/approval', {...draft, content:draft.content+'\n<script>alert(1)</script>'});
@@ -78,7 +81,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'1.3.1'};
+    if(url==='/api/health') data={version:'1.4.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};

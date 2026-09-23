@@ -1,10 +1,10 @@
 {
   "name": "area-seo-ai",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "node --check server.js && node --check public/app.js && node tests/runtime.js"
+    "test": "node --check server.js && node --check public/app.js && node --check public/intelligence.js && node tests/runtime.js && node tests/site-intelligence.js"
   },
   "engines": {
     "node": ">=20"
