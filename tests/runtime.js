@@ -33,7 +33,7 @@ async function main() {
     return {status:res.status, data:await res.json()};
   }
   assert.equal((await fetch(base+'/api/health')).status, 200);
-  assert.equal((await request('/api/health')).data.version, '1.9.0');
+  assert.equal((await request('/api/health')).data.version, '2.0.0');
   assert.equal((await request('/api/health')).data.authRequired, true);
   assert.equal((await request('/api/health')).data.authConfigured, true);
   assert.equal((await fetch(base+'/')).status, 401);
@@ -51,13 +51,16 @@ async function main() {
   assert.equal(created.data.status, 'ready_for_review');
   assert.equal((await request('/api/approval')).data.items.length, 1);
   const backup=(await request('/api/admin/backup')).data;
-  assert.equal(backup.schema_version,'1');
+  assert.equal(backup.schema_version,'2');
+  assert.equal(backup.approval_audit.length,1);
   assert.equal(backup.approvals.length,1);
   const preview = await (await fetch(base+'/api/approval/'+id+'/preview',{headers:{Authorization:auth}})).text();
   assert(!preview.includes('<script>'));
   assert(preview.includes('&lt;script&gt;'));
   assert.equal((await request('/api/approval/'+id+'/approve', {})).data.status, 'approved');
-  assert.equal((await request('/api/approval/'+id+'/reject', {})).data.status, 'needs_changes');
+  const invalidReject=await request('/api/approval/'+id+'/reject', {});
+  assert.equal(invalidReject.status,409);
+  assert.equal((await request('/api/approval')).data.items[0].status,'approved');
   assert.equal((await request('/api/content/generate', {})).status, 503);
   assert.equal((await request('/api/seo/quality-review', {})).status, 400);
   assert.equal((await request('/api/seo/quality-review', {content:'บทความแม่สาย'})).status, 503);
@@ -102,7 +105,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'1.9.0'};
+    if(url==='/api/health') data={version:'2.0.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};

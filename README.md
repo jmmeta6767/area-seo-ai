@@ -141,3 +141,26 @@ It never merges the PR and never pushes directly to `main`.
 The approval snapshot records the PR number, URL, branch and written commit SHAs and
 moves to `publishing` so the operation is auditable. Keep the token out of GitHub
 source and configure it only as a Render secret.
+
+
+## Production Readiness (v2.0)
+
+v2.0 hardens the approval/publishing lifecycle before live use. Approval data is now
+written with temp-file + atomic rename semantics instead of direct overwrite. A corrupt
+approval file fails closed and is preserved for recovery rather than silently becoming
+an empty queue.
+
+Approval creation, human approve/reject, PR creation and publish-state changes append
+structured events to `approval-audit.jsonl`. The admin backup schema is v2 and includes
+this audit history. `GET /api/admin/audit-log?limit=100` exposes the latest audit events
+behind admin authentication.
+
+Publisher PR creation is idempotent after a PR has been recorded: a repeated request
+returns the existing publishing record instead of creating another PR. Approval and
+rejection are valid only from `ready_for_review`; invalid lifecycle transitions return
+HTTP 409. PR status refresh records transitions to `published` or `needs_changes`.
+
+This improves crash/retry safety on one process, but does **not** make Render's free
+ephemeral filesystem durable. Production durability still requires a persistent disk or
+transactional database and a verified backup/restore procedure. No paid infrastructure
+or automatic PR merge is introduced by v2.0.
