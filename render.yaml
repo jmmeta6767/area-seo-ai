@@ -12,3 +12,9 @@ services:
         value: gemini-2.5-flash
       - key: GEMINI_API_KEY
         sync: false
+      - key: REQUIRE_ADMIN_AUTH
+        value: "true"
+      - key: ADMIN_USER
+        value: areaadmin
+      - key: ADMIN_PASSWORD
+        sync: false

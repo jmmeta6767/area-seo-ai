@@ -78,3 +78,49 @@ Accuracy assessment is based on the supplied content, not external fact checking
 The UI displays/downloads JSON, clears old reports after input edits, and refuses
 a response when the article changed during the request. Reports are not persisted
 as website scan history; export JSON to retain an individual content review.
+
+
+## Admin Security & Deployment Backup (v1.6)
+
+v1.6 adds a server-side HTTP Basic authentication gate for the private admin app.
+Set `REQUIRE_ADMIN_AUTH=true`, `ADMIN_USER`, and a strong `ADMIN_PASSWORD`.
+When authentication is required but credentials are missing, the application fails
+closed with HTTP 503. Invalid or missing credentials receive HTTP 401. The public
+`/api/health` endpoint exposes only boolean readiness flags and never returns secrets.
+
+All admin HTML, scripts, approval routes, Website Intelligence, Gemini actions and
+publisher-preflight routes are behind the same gate when enabled. Credential
+comparison uses fixed-length SHA-256 digests with timing-safe comparison. Secrets
+remain server-side and must be stored in Render environment variables, not GitHub.
+
+`GET /api/admin/backup` exports approval-queue data plus Website Intelligence
+history as JSON before a redeploy or migration. This is an export only: v1.6 does
+not add an overwrite/restore endpoint, avoiding accidental destructive imports.
+
+The Render blueprint intentionally declares `ADMIN_PASSWORD` with `sync: false`.
+Do not merge/deploy v1.6 until that secret is set for the target service. The free
+Render filesystem remains ephemeral; the backup endpoint reduces migration risk but
+does not make storage durable. Live Publisher remains locked.
+
+
+## Safe Publisher Package (v1.7)
+
+v1.7 prepares approved content for the real AREA Maibab public-site structure without
+writing to the public repository. It renders a public article with the existing
+`seoArticle` classes, canonical/OG metadata, BlogPosting and Breadcrumb JSON-LD,
+verified Mae Sai contact CTA, and removes the Markdown H1 from the body so the final
+page has exactly one H1.
+
+The builder also updates the existing `articles.html` ItemList JSON-LD and appends
+a `seoArticleCard`, then updates `sitemap.xml` with an idempotent weekly article
+entry. Duplicate article/listing slugs are rejected.
+
+For an approved draft, `GET /api/approval/:id/publisher-package` runs the existing
+preflight, reads the currently deployed `articles.html` and `sitemap.xml`, and
+returns a package containing exactly three candidate files: the new article,
+`articles.html`, and `sitemap.xml`. The endpoint is behind v1.6 admin auth.
+
+This endpoint is package-only. It does not write GitHub, merge `main`, or unlock
+the live publisher. The next publisher stage should create a dedicated branch and
+pull request in `jmmeta6767/area-maibab-public-site`, then require review before
+merge.
