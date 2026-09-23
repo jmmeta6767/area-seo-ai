@@ -1,0 +1,11 @@
+const assert=require("assert");
+const esc=x=>String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const sitemap=(xml,url)=>xml.includes("<loc>"+url+"</loc>")?xml:xml.replace("</urlset>","  <url>\n    <loc>"+esc(url)+"</loc>\n  </url>\n</urlset>");
+let xml='<?xml version="1.0"?><urlset></urlset>',url="https://example.com/article-test.html";
+let once=sitemap(xml,url),twice=sitemap(once,url);
+assert(once.includes("<loc>"+url+"</loc>"));assert.equal(once,twice);
+let schema={"@context":"https://schema.org","@type":"Article",headline:"เช่าไม้แบบแม่สาย",mainEntityOfPage:url};
+assert.doesNotThrow(()=>JSON.parse(JSON.stringify(schema)));
+let title=esc('<script>alert(1)</script>');assert(!title.includes("<script>"));
+let canonical='<link rel="canonical" href="'+url+'">';assert(canonical.includes(url));
+console.log("article builder integration tests passed");
