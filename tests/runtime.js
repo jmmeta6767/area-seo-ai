@@ -51,7 +51,8 @@ async function main() {
   assert.equal(created.data.status, 'ready_for_review');
   assert.equal((await request('/api/approval')).data.items.length, 1);
   const backup=(await request('/api/admin/backup')).data;
-  assert.equal(backup.schema_version,'2');\n  assert.equal(backup.approval_audit.length,1);
+  assert.equal(backup.schema_version,'2');
+  assert.equal(backup.approval_audit.length,1);
   assert.equal(backup.approvals.length,1);
   const preview = await (await fetch(base+'/api/approval/'+id+'/preview',{headers:{Authorization:auth}})).text();
   assert(!preview.includes('<script>'));
