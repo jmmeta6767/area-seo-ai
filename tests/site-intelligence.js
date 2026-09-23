@@ -26,7 +26,26 @@ async function main(){
     const restarted=createIntelligence({dataDir:dir,base,fetcher,cooldownMs:0});assert.equal(restarted.history().length,2);assert.equal(restarted.detail(first.id).average,90);
     const failed=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{throw Error('offline');}});let failure=await failed.scan();assert.equal(failure.average,null);assert.equal(failure.resolvedCount,0);assert.equal(failure.pages[0].delta,null);
     assert.equal((await restarted.scan()).pages[0].previousScore,100);
-    const limited=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>url.endsWith('sitemap.xml')?response('<urlset>'+Array.from({length:40},(_,i)=>`<loc>https://example.com/p${i}</loc>`).join('')+'</urlset>'):response(good())});assert.equal((await limited.scan()).pages.length,30);
+    const limited=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>url.endsWith('sitemap.xml')?response('<urlset>'+Array.from({length:120},(_,i)=>`<loc>https://example.com/p${i}</loc>`).join('')+'</urlset>'):response(good())});const capped=await limited.scan();assert.equal(capped.pages.length,100);assert.equal(capped.discovered,121);assert.equal(capped.partial,true);
+    const childSeen=[];
+    const maps={
+      '/sitemap.xml':'<sitemapindex><loc>https://example.com/articles.xml</loc><loc>https://example.com/nested.xml</loc><loc>https://evil.com/map.xml</loc></sitemapindex>',
+      '/articles.xml':'<urlset><loc><![CDATA[https://example.com/a?x=1&y=2]]></loc><loc>https://example.com/shared</loc></urlset>',
+      '/nested.xml':'<sitemapindex><loc>https://example.com/articles.xml</loc><loc>https://example.com/services.xml</loc></sitemapindex>',
+      '/services.xml':'<urlset><loc>https://example.com/shared</loc><loc>https://example.com/service</loc></urlset>'
+    };
+    const nested=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>{childSeen.push(url);return response(maps[new URL(url).pathname]||good(url));}});
+    const nestedResult=await nested.scan();assert.equal(nestedResult.pages.length,4);assert.equal(nestedResult.sitemapsRead,4);assert(nestedResult.partial);
+    assert.equal(childSeen.filter(u=>u.endsWith('/articles.xml')).length,1);assert(!childSeen.some(u=>u.includes('evil.com')));
+    assert(nestedResult.pages.some(p=>p.url==='https://example.com/a?x=1&y=2'));
+    const mapBudget=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>response(url.endsWith('/sitemap.xml')?'<sitemapindex>'+Array.from({length:20},(_,i)=>'<loc>https://example.com/map'+i+'.xml</loc>').join('')+'</sitemapindex>':url.endsWith('.xml')?'<urlset><loc>https://example.com/page</loc></urlset>':good())});
+    const budget=await mapBudget.scan();assert.equal(budget.sitemapsRead,10);assert(budget.partial);assert(budget.warnings.some(w=>w.includes('10')));
+    const brokenChild=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>{if(url.endsWith('/sitemap.xml'))return response('<sitemapindex><loc>https://example.com/broken.xml</loc></sitemapindex>');if(url.endsWith('.xml'))throw Error('timeout');return response(good());}});
+    const brokenResult=await brokenChild.scan();assert(brokenResult.partial);assert.equal(brokenResult.pages.length,1);assert.equal(brokenResult.average,100);
+    const complete=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>response(url.endsWith('/sitemap.xml')?'<urlset>'+Array.from({length:35},(_,i)=>'<loc>https://example.com/full'+i+'</loc>').join('')+'</urlset>':good(url))});
+    const full=await complete.scan();assert.equal(full.pages.length,36);assert.equal(full.partial,false);
+    const discoveryCap=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>response(url.endsWith('/sitemap.xml')?'<urlset>'+Array.from({length:5001},(_,i)=>'<loc>https://example.com/capped'+i+'</loc>').join('')+'</urlset>':good(url))});
+    const cappedDiscovery=await discoveryCap.scan();assert.equal(cappedDiscovery.discovered,5000);assert.equal(cappedDiscovery.discoveryLimited,true);assert.equal(cappedDiscovery.pages.length,100);assert(cappedDiscovery.partial);
     let release;const pending=new Promise(r=>release=r);const busy=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{await pending;return response(good());}});const work=busy.scan();await assert.rejects(busy.scan(),e=>e.status===409);release();await work;
     const cooldown=createIntelligence({dataDir:dir,base,fetcher});await cooldown.scan();await assert.rejects(cooldown.scan(),e=>e.status===429);
     for(let i=0;i<61;i++)await restarted.scan();assert.equal(restarted.history().length,60);
