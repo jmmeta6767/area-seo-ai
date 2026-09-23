@@ -164,3 +164,23 @@ This improves crash/retry safety on one process, but does **not** make Render's 
 ephemeral filesystem durable. Production durability still requires a persistent disk or
 transactional database and a verified backup/restore procedure. No paid infrastructure
 or automatic PR merge is introduced by v2.0.
+
+
+## Persistent Storage (v2.1)
+
+v2.1 adds an optional PostgreSQL durability layer. When `DATABASE_URL` is present,
+startup creates only the `area_seo_state` and `area_seo_audit` tables, hydrates the
+approval queue from PostgreSQL when available, and mirrors later approval writes and
+audit events to the database. The existing local files remain a recovery/cache copy.
+
+`GET /api/admin/storage-health` reports whether storage is file-only or PostgreSQL,
+and `/api/health` exposes only boolean persistence readiness without credentials.
+Admin audit-log reads from PostgreSQL once persistence is ready.
+
+If `DATABASE_URL` is absent the app deliberately stays compatible with file storage;
+that mode is not durable on Render Free. If a configured database cannot initialize,
+the production process does not start rather than silently pretending persistence is
+healthy. Database credentials must be Render secrets and never committed to GitHub.
+
+v2.1 does not automatically provision paid infrastructure and does not change the
+safe PR-only publisher policy.
