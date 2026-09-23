@@ -21,6 +21,7 @@ async function main(){
  await Promise.all(Array.from({length:10},()=>db.add(article,report)));
  assert.equal(db.list().length,11);
  const restarted=createQualityHistory({dataDir:path.join(root,'empty'),persistent});await restarted.init();assert.equal(restarted.list().length,11);
+ const replacement={version:1,items:[clone(first)]};await restarted.replace(replacement);assert.equal(restarted.list().length,1);assert.equal(saved.items.length,1);await restarted.replace({version:1,items:[clone(first),clone(first)].map((x,i)=>({...x,id:'replace-'+i}))});assert.equal(restarted.list().length,2);
  fail=true;
  await assert.rejects(db.add(article,report),e=>e.status===503&&!e.message.includes('private'));
  assert.equal(db.list().length,11);assert.equal(saved.items.length,11);assert.equal(db.status().storageDurable,false);
