@@ -7,6 +7,9 @@ const vm = require('node:vm');
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'area-seo-test-'));
 process.env.PUBLIC_SITE_URL = 'https://example.com/';
 delete process.env.GEMINI_API_KEY;
+process.env.REQUIRE_ADMIN_AUTH = 'true';
+process.env.ADMIN_USER = 'test-admin';
+process.env.ADMIN_PASSWORD = 'test-secret';
 const {server, localAudit, articleDocument} = require('../server');
 const draft = {
   title: 'ก'.repeat(50), meta: 'ข'.repeat(130), slug: 'mae-sai-formwork',
@@ -23,16 +26,23 @@ async function main() {
   }
   await new Promise(resolve=>server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:'+server.address().port;
+  const auth = 'Basic '+Buffer.from('test-admin:test-secret').toString('base64');
   async function request(route, data) {
-    const res = await fetch(base+route, data===undefined?{}:{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    const options=data===undefined?{headers:{Authorization:auth}}:{method:'POST', headers:{'Content-Type':'application/json',Authorization:auth}, body:JSON.stringify(data)};
+    const res = await fetch(base+route, options);
     return {status:res.status, data:await res.json()};
   }
-  assert.equal((await request('/api/health')).data.version, '1.5.0');
+  assert.equal((await fetch(base+'/api/health')).status, 200);
+  assert.equal((await request('/api/health')).data.version, '1.6.0');
+  assert.equal((await request('/api/health')).data.authRequired, true);
+  assert.equal((await request('/api/health')).data.authConfigured, true);
+  assert.equal((await fetch(base+'/')).status, 401);
+  assert.equal((await fetch(base+'/api/approval')).status, 401);
   assert.equal((await request('/api/business-profile')).data.schema['@id'], 'https://example.com/#organization');
-  assert.equal((await fetch(base+'/')).status, 200);
+  assert.equal((await fetch(base+'/',{headers:{Authorization:auth}})).status, 200);
   assert.deepEqual((await request('/api/intelligence/history')).data.items, []);
   assert.equal((await request('/api/intelligence/snapshot/missing')).status, 404);
-  assert.equal((await fetch(base+'/intelligence.js')).status, 200);
+  assert.equal((await fetch(base+'/intelligence.js',{headers:{Authorization:auth}})).status, 200);
   assert.equal((await request('/api/seo/audit', draft)).data.score, 100);
   assert.equal((await request('/api/approval', {...draft, slug:''})).status, 422);
   const created = await request('/api/approval', {...draft, content:draft.content+'\n<script>alert(1)</script>'});
@@ -40,7 +50,10 @@ async function main() {
   const id = created.data.id;
   assert.equal(created.data.status, 'ready_for_review');
   assert.equal((await request('/api/approval')).data.items.length, 1);
-  const preview = await (await fetch(base+'/api/approval/'+id+'/preview')).text();
+  const backup=(await request('/api/admin/backup')).data;
+  assert.equal(backup.schema_version,'1');
+  assert.equal(backup.approvals.length,1);
+  const preview = await (await fetch(base+'/api/approval/'+id+'/preview',{headers:{Authorization:auth}})).text();
   assert(!preview.includes('<script>'));
   assert(preview.includes('&lt;script&gt;'));
   assert.equal((await request('/api/approval/'+id+'/approve', {})).data.status, 'approved');
@@ -89,7 +102,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'1.5.0'};
+    if(url==='/api/health') data={version:'1.6.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};
