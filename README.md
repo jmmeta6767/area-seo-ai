@@ -101,3 +101,26 @@ The Render blueprint intentionally declares `ADMIN_PASSWORD` with `sync: false`.
 Do not merge/deploy v1.6 until that secret is set for the target service. The free
 Render filesystem remains ephemeral; the backup endpoint reduces migration risk but
 does not make storage durable. Live Publisher remains locked.
+
+
+## Safe Publisher Package (v1.7)
+
+v1.7 prepares approved content for the real AREA Maibab public-site structure without
+writing to the public repository. It renders a public article with the existing
+`seoArticle` classes, canonical/OG metadata, BlogPosting and Breadcrumb JSON-LD,
+verified Mae Sai contact CTA, and removes the Markdown H1 from the body so the final
+page has exactly one H1.
+
+The builder also updates the existing `articles.html` ItemList JSON-LD and appends
+a `seoArticleCard`, then updates `sitemap.xml` with an idempotent weekly article
+entry. Duplicate article/listing slugs are rejected.
+
+For an approved draft, `GET /api/approval/:id/publisher-package` runs the existing
+preflight, reads the currently deployed `articles.html` and `sitemap.xml`, and
+returns a package containing exactly three candidate files: the new article,
+`articles.html`, and `sitemap.xml`. The endpoint is behind v1.6 admin auth.
+
+This endpoint is package-only. It does not write GitHub, merge `main`, or unlock
+the live publisher. The next publisher stage should create a dedicated branch and
+pull request in `jmmeta6767/area-maibab-public-site`, then require review before
+merge.
