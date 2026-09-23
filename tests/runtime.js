@@ -33,7 +33,7 @@ async function main() {
     return {status:res.status, data:await res.json()};
   }
   assert.equal((await fetch(base+'/api/health')).status, 200);
-  assert.equal((await request('/api/health')).data.version, '2.7.0');
+  assert.equal((await request('/api/health')).data.version, '2.8.0');
   assert.equal((await request('/api/health')).data.authRequired, true);
   assert.equal((await request('/api/health')).data.authConfigured, true);
   assert.equal((await fetch(base+'/')).status, 401);
@@ -106,7 +106,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'2.7.0'};
+    if(url==='/api/health') data={version:'2.8.0'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};

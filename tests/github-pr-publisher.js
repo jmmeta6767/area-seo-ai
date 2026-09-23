@@ -18,7 +18,11 @@ async function request(method,path,body){
   if(method==="PUT"&&path.includes("/contents/"))return {status:201,data:{commit:{sha:"c"+calls.length}}};
   if(method==="GET"&&path.includes("/pulls?"))return {status:200,data:[]};
   if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};
-  if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"open",merged:false,mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};
+  if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"closed",merged:true,merge_commit_sha:"merge8",mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};
+  if(method==="GET"&&path.endsWith("/git/commits/merge8"))return {status:200,data:{parents:[{sha:"before8"}]}};
+  if(method==="GET"&&path.endsWith("/git/commits/before8"))return {status:200,data:{tree:{sha:"tree-before"}}};
+  if(method==="POST"&&path.endsWith("/git/commits"))return {status:201,data:{sha:"revert-commit"}};
+  if(method==="PATCH"&&path.includes("/git/refs/heads/"))return {status:200,data:{object:{sha:body.sha}}};
   if(method==="PATCH"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",state:"closed"}};
   if(method==="GET"&&path.endsWith("/commits/head8/status"))return {status:200,data:{state:"success",statuses:[{context:"CI",state:"success",description:"passed",target_url:"https://github.com/example/actions"}]}};
   throw Error("Unexpected mock call "+method+" "+path);
@@ -39,4 +43,4 @@ client.getPublishBase(item.slug).then(base=>{assert.equal(base.baseSha,"base123"
 }).then(()=>{
   const bad={...pkg,files:[...pkg.files,{path:"index.html",content:"bad"}]};
   return assert.rejects(()=>client.createPublishPR(item,bad),/unexpected path/);
-}).then(()=>assert.rejects(()=>client.createPublishPR(item,pkg,{expectedBaseSha:"old"}),/main changed/)).then(()=>client.getPublishStatus(8)).then(status=>{assert.equal(status.ci.state,"success");assert.equal(status.merged,false);assert.equal(status.branch,"area-seo/article-plastic-formwork-maesai");}).then(()=>console.log("PASS: guarded GitHub PR publisher branch/files/PR/status/no-merge")).catch(e=>{console.error(e);process.exit(1)});
+}).then(()=>assert.rejects(()=>client.createPublishPR(item,pkg,{expectedBaseSha:"old"}),/main changed/)).then(()=>client.getPublishStatus(8)).then(status=>{assert.equal(status.ci.state,"success");assert.equal(status.merged,true);assert.equal(status.branch,"area-seo/article-plastic-formwork-maesai");return client.createRevertPR(8)}).then(revert=>{assert.equal(revert.mode,"revert-pull-request");assert.equal(revert.sourcePr,8);assert.equal(revert.merged,false);assert(calls.some(x=>x.method==="POST"&&x.path.endsWith("/git/commits")));}).then(()=>console.log("PASS: guarded GitHub PR publisher branch/files/PR/status/no-merge")).catch(e=>{console.error(e);process.exit(1)});
