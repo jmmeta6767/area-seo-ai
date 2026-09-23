@@ -283,10 +283,12 @@ A published draft can create a recovery pull request with
 `POST /api/approval/:id/publish-revert`. The source publisher PR must already be
 merged. Recovery never writes directly to `main` and never auto-merges.
 
-The recovery branch is based on the current public-site `main`. It creates a commit
-whose tree restores the pre-merge tree of the recorded publisher merge commit, then
-opens a normal review PR. Repeated requests for the same draft return the recorded
-revert PR instead of creating another one. Every recovery PR creation is audited.
+The recovery branch is based on the current public-site `main`. Recovery is targeted:
+it reverts only the article file, `articles.html`, and `sitemap.xml` changes made by
+the recorded publisher PR. If any of those files changed again after that PR, recovery
+fails closed with HTTP 409 rather than overwriting newer edits. Unrelated newer site
+files are preserved. Repeated requests for the same draft return the recorded revert
+PR instead of creating another one. Every recovery PR creation is audited.
 
 
 ## Performance Intelligence (v2.9)
@@ -355,3 +357,25 @@ Snapshots record sitemap count and whether discovery was capped. The UI reports 
 lower-bound URL count when capped. Failed child maps preserve discovered pages and
 mark the result partial. Existing score history and onpage-1 comparisons remain valid;
 this extends discovery without changing scoring weights or claiming Google ranking.
+
+
+## Technical Indexability Diagnostics (v3.4)
+
+Website Intelligence now records site-level technical crawl diagnostics alongside the
+existing page score without changing the `onpage-1` scoring weights. Each scan reads
+`/robots.txt` through the same same-origin HTTPS, public-address, response-size,
+redirect and timeout guards used by the crawler.
+
+The snapshot records robots HTTP status, whether the file was readable, whether the
+wildcard user-agent contains an exact `Disallow: /`, same-origin sitemap directives,
+external/invalid sitemap directives, and whether the configured root sitemap is
+declared. These findings appear as separate Technical SEO tasks; they do not pretend
+to prove Google indexing status.
+
+Page analysis also records whether an absolute HTTPS canonical stays on the same
+origin and whether it matches the URL that was scanned. Off-origin canonicals and
+non-self canonicals are reported as explicit issues without changing the historical
+100-point score, so existing score comparisons remain comparable.
+
+This feature still does not execute target-site JavaScript, inspect Google index
+coverage, or verify every internal-link destination. Those remain separate checks.
