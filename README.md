@@ -302,3 +302,13 @@ an article cooldown instead of modifying the live article directly.
 Until GA4/Search Console credentials and collectors are configured, the endpoint reports
 `analyticsConfigured:false` and each article reports `analyticsStatus:"pending"`;
 it never invents ranking or visitor numbers.
+
+
+## Missing performance data (v3.1.1)
+
+Unknown click and visitor counts are returned as null, with pending SEO health.
+Missing comparison observations never count as zero or trigger a false traffic-drop
+alert; measured zero clicks still count as a real decline. Approval drafts retain
+the primary keyword supplied by the article workspace. Analytics clears the previous
+article's results when loading or failing, and ignores responses from older requests.
+These changes do not configure external credentials or enable admin login.

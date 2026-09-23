@@ -14,7 +14,7 @@ const {server, localAudit, articleDocument} = require('../server');
 const draft = {
   title: 'ก'.repeat(50), meta: 'ข'.repeat(130), slug: 'mae-sai-formwork',
   content: '# แม่สาย\n## วางแผน\n- รายการ\n| แบบ | งาน |\n| --- | --- |\n| ก | ข |\n## ตรวจสอบ\n' + 'ก'.repeat(2600),
-  imagePrompt: 'Construction formwork', imageAlt: 'ไม้แบบ', cta: 'ติดต่อร้าน',
+  primaryKeyword: 'เช่าไม้แบบ แม่สาย', imagePrompt: 'Construction formwork', imageAlt: 'ไม้แบบ', cta: 'ติดต่อร้าน',
   schema: {'@context': 'https://schema.org', '@type': 'Article'},
 };
 async function main() {
@@ -33,7 +33,7 @@ async function main() {
     return {status:res.status, data:await res.json()};
   }
   assert.equal((await fetch(base+'/api/health')).status, 200);
-  assert.equal((await request('/api/health')).data.version, '3.1.0');
+  assert.equal((await request('/api/health')).data.version, '3.1.1');
   assert.equal((await request('/api/health')).data.authRequired, true);
   assert.equal((await request('/api/health')).data.authConfigured, true);
   assert.equal((await fetch(base+'/')).status, 401);
@@ -50,6 +50,7 @@ async function main() {
   assert.equal(created.status, 201);
   const id = created.data.id;
   assert.equal(created.data.status, 'ready_for_review');
+  assert.equal(created.data.primaryKeyword, draft.primaryKeyword);
   assert.equal((await request('/api/approval')).data.items.length, 1);
   const backup=(await request('/api/admin/backup')).data;
   assert.equal(backup.schema_version,'2');
@@ -59,6 +60,11 @@ async function main() {
   assert(!preview.includes('<script>'));
   assert(preview.includes('&lt;script&gt;'));
   assert.equal((await request('/api/approval/'+id+'/approve', {})).data.status, 'approved');
+  const performance=(await request('/api/content/performance')).data.items[0];
+  assert.equal(performance.primaryKeyword,draft.primaryKeyword);
+  assert.equal(performance.clicks7d,null);
+  assert.equal(performance.visitors7d,null);
+  assert.equal(performance.seoHealth,'pending');
   const invalidReject=await request('/api/approval/'+id+'/reject', {});
   assert.equal(invalidReject.status,409);
   assert.equal((await request('/api/approval')).data.items[0].status,'approved');
@@ -106,7 +112,7 @@ async function main() {
   let sent;
   const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
-    if(url==='/api/health') data={version:'3.1.0'};
+    if(url==='/api/health') data={version:'3.1.1'};
     if(url==='/api/approval') data={items:[]};
     if(url==='/api/seo/fix') {sent=JSON.parse(opts.body); data={...sent,slug:'fixed-slug',schema:draft.schema};}
     if(url==='/api/seo/audit') data={score:100,passed:true,checks:[]};
