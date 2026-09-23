@@ -18,7 +18,11 @@ async function request(method,path,body){
   if(method==="PUT"&&path.includes("/contents/"))return {status:201,data:{commit:{sha:"c"+calls.length}}};
   if(method==="GET"&&path.includes("/pulls?"))return {status:200,data:[]};
   if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};
-  if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"closed",merged:true,merge_commit_sha:"merge8",mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};\n  if(method==="GET"&&path.endsWith("/git/commits/merge8"))return {status:200,data:{parents:[{sha:"before8"}]}};\n  if(method==="GET"&&path.endsWith("/git/commits/before8"))return {status:200,data:{tree:{sha:"tree-before"}}};\n  if(method==="POST"&&path.endsWith("/git/commits"))return {status:201,data:{sha:"revert-commit"}};\n  if(method==="PATCH"&&path.includes("/git/refs/heads/"))return {status:200,data:{object:{sha:body.sha}}};
+  if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"closed",merged:true,merge_commit_sha:"merge8",mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};
+  if(method==="GET"&&path.endsWith("/git/commits/merge8"))return {status:200,data:{parents:[{sha:"before8"}]}};
+  if(method==="GET"&&path.endsWith("/git/commits/before8"))return {status:200,data:{tree:{sha:"tree-before"}}};
+  if(method==="POST"&&path.endsWith("/git/commits"))return {status:201,data:{sha:"revert-commit"}};
+  if(method==="PATCH"&&path.includes("/git/refs/heads/"))return {status:200,data:{object:{sha:body.sha}}};
   if(method==="PATCH"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",state:"closed"}};
   if(method==="GET"&&path.endsWith("/commits/head8/status"))return {status:200,data:{state:"success",statuses:[{context:"CI",state:"success",description:"passed",target_url:"https://github.com/example/actions"}]}};
   throw Error("Unexpected mock call "+method+" "+path);
