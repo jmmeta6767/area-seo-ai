@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: area-seo-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PUBLIC_SITE_URL
+        value: https://area-maibab-public-site.onrender.com
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
