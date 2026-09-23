@@ -286,3 +286,19 @@ The recovery branch is based on the current public-site `main`. It creates a com
 whose tree restores the pre-merge tree of the recorded publisher merge commit, then
 opens a normal review PR. Repeated requests for the same draft return the recorded
 revert PR instead of creating another one. Every recovery PR creation is audited.
+
+
+## Performance Intelligence (v2.9)
+
+The content pipeline now exposes `GET /api/content/performance` for Approval/Published
+views. It links each publishable article to its page path, primary keyword and latest
+performance snapshot without making live Google API calls per table row.
+
+`lib/performance-comparison.js` implements the alert rule: an article must be older
+than 30 days and either lose more than 3 ranking positions or lose more than 20 percent
+of Google clicks. Re-optimization tasks enter `research`, require approval, and honor
+an article cooldown instead of modifying the live article directly.
+
+Until GA4/Search Console credentials and collectors are configured, the endpoint reports
+`analyticsConfigured:false` and each article reports `analyticsStatus:"pending"`;
+it never invents ranking or visitor numbers.
