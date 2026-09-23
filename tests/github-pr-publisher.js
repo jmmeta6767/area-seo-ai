@@ -12,7 +12,9 @@ async function request(method,path,body){
   if(method==="GET"&&path.includes("/git/ref/heads/main"))return {status:200,data:{object:{sha:"base123"}}};
   if(method==="GET"&&path.includes("/git/ref/heads/area-seo")){const e=Error("Not Found");e.statusCode=404;throw e}
   if(method==="POST"&&path.endsWith("/git/refs"))return {status:201,data:{ref:body.ref}};
-  if(method==="GET"&&path.includes("/contents/articles.html")&&path.includes("ref=main"))return {status:200,data:{sha:"a1",content:Buffer.from("<html>listing</html>").toString("base64")}};\n  if(method==="GET"&&path.includes("/contents/sitemap.xml")&&path.includes("ref=main"))return {status:200,data:{sha:"s1",content:Buffer.from("<urlset></urlset>").toString("base64")}};\n  if(method==="GET"&&path.includes("/contents/")){const e=Error("Not Found");e.statusCode=404;throw e}
+  if(method==="GET"&&path.includes("/contents/articles.html")&&path.includes("ref=main"))return {status:200,data:{sha:"a1",content:Buffer.from("<html>listing</html>").toString("base64")}};
+  if(method==="GET"&&path.includes("/contents/sitemap.xml")&&path.includes("ref=main"))return {status:200,data:{sha:"s1",content:Buffer.from("<urlset></urlset>").toString("base64")}};
+  if(method==="GET"&&path.includes("/contents/")){const e=Error("Not Found");e.statusCode=404;throw e}
   if(method==="PUT"&&path.includes("/contents/"))return {status:201,data:{commit:{sha:"c"+calls.length}}};
   if(method==="GET"&&path.includes("/pulls?"))return {status:200,data:[]};
   if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};
