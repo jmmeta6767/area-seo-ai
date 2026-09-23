@@ -1,5 +1,8 @@
 const http=require("http"),fs=require("fs"),path=require("path"),https=require("https");
-const root=path.join(__dirname,"public"),dataDir=process.env.DATA_DIR||path.join(__dirname,"data"),port=process.env.PORT||3000;\nconst approvalStore=require("./lib/approval-store").createApprovalStore({dataDir});\nconst queueRead=()=>approvalStore.read(),queueWrite=x=>approvalStore.write(x);\nconst safeText=x=>String(x||"").replace(/[<>]/g,"").trim(),slugify=x=>safeText(x).toLowerCase().replace(/[^a-z0-9ก-๙]+/g,"-").replace(/^-|-$/g,"").slice(0,100);
+const root=path.join(__dirname,"public"),dataDir=process.env.DATA_DIR||path.join(__dirname,"data"),port=process.env.PORT||3000;
+const approvalStore=require("./lib/approval-store").createApprovalStore({dataDir});
+const queueRead=()=>approvalStore.read(),queueWrite=x=>approvalStore.write(x);
+const safeText=x=>String(x||"").replace(/[<>]/g,"").trim(),slugify=x=>safeText(x).toLowerCase().replace(/[^a-z0-9ก-๙]+/g,"-").replace(/^-|-$/g,"").slice(0,100);
 const escapeHtml=x=>String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const BUSINESS_PROFILE={name:"ห้างหุ้นส่วนจำกัด แอเรีย ไม้แบบ",alternateName:"AREA Maibab",url:(process.env.PUBLIC_SITE_URL||"https://area-maibab-public-site.onrender.com").replace(/\/$/,""),telephone:"+66-64-989-3124",primaryArea:"อำเภอแม่สาย",region:"เชียงราย",country:"TH"};
