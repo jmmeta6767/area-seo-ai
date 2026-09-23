@@ -3,3 +3,16 @@ assert.equal(percentChange(80,100),-20);assert.equal(percentChange(10,0),null);a
 const p={checkedAt:"2026-09-23T00:00:00Z",comparison:comparePerformance({publishedAt:"2026-08-01T00:00:00Z",current:{primaryKeywordRank:6.2,clicks7d:70},previous:{primaryKeywordRank:2.4,clicks7d:100},now:new Date("2026-09-23T00:00:00Z")})};assert.equal(p.comparison.needsReoptimization,true);assert.deepEqual(p.comparison.reasons.map(x=>x.code),["rank_drop","click_drop"]);
 const fresh=comparePerformance({publishedAt:"2026-09-01T00:00:00Z",current:{primaryKeywordRank:9,clicks7d:10},previous:{primaryKeywordRank:1,clicks7d:100},now:new Date("2026-09-23T00:00:00Z")});assert.equal(fresh.needsReoptimization,false);
 const article={id:"a1",pagePath:"/article-a.html",primaryKeyword:"เช่าไม้แบบ แม่สาย"};assert.equal(createReoptimizationTask(article,p,new Date("2026-09-23T00:00:00Z")).status,"research");article.seoAlert={cooldownUntil:"2026-10-01T00:00:00Z"};assert.equal(createReoptimizationTask(article,p,new Date("2026-09-23T00:00:00Z")),null);console.log("PASS: performance comparison thresholds, age gate and reoptimization cooldown");
+
+// Missing observations must never fabricate a 100% click decline.
+const missing=comparePerformance({publishedAt:"2026-08-01",current:{},previous:{clicks7d:100},now:new Date("2026-09-23")});
+assert.equal(missing.needsReoptimization,false);
+assert.equal(missing.clicks.current,null);
+assert.equal(missing.clicks.changePercent,null);
+assert.equal(missing.rank.change,null);
+assert.equal(missing.dataStatus,"pending");
+for(const value of [undefined,null,"",NaN,Infinity,-1])assert.equal(percentChange(value,100),null);
+const zero=comparePerformance({publishedAt:"2026-08-01",current:{clicks7d:0},previous:{clicks7d:100},now:new Date("2026-09-23")});
+assert.equal(zero.clicks.current,0);
+assert.equal(zero.needsReoptimization,true);
+assert.equal(zero.clicks.changePercent,-100);
