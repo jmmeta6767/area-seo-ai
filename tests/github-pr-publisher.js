@@ -15,7 +15,7 @@ async function request(method,path,body){
   if(method==="GET"&&path.includes("/contents/")){const e=Error("Not Found");e.statusCode=404;throw e}
   if(method==="PUT"&&path.includes("/contents/"))return {status:201,data:{commit:{sha:"c"+calls.length}}};
   if(method==="GET"&&path.includes("/pulls?"))return {status:200,data:[]};
-  if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};
+  if(method==="POST"&&path.endsWith("/pulls"))return {status:201,data:{number:8,html_url:"https://github.com/example/pr/8",title:body.title}};\n  if(method==="GET"&&path.endsWith("/pulls/8"))return {status:200,data:{number:8,html_url:"https://github.com/example/pr/8",title:"SEO",state:"open",merged:false,mergeable:true,head:{ref:"area-seo/article-plastic-formwork-maesai",sha:"head8"},base:{ref:"main"},updated_at:"2026-09-23T00:00:00Z"}};\n  if(method==="GET"&&path.endsWith("/commits/head8/status"))return {status:200,data:{state:"success",statuses:[{context:"CI",state:"success",description:"passed",target_url:"https://github.com/example/actions"}]}};
   throw Error("Unexpected mock call "+method+" "+path);
 }
 const client=createClient({token:"test",repo:"jmmeta6767/area-maibab-public-site",baseBranch:"main",request});
@@ -34,4 +34,4 @@ client.createPublishPR(item,pkg).then(out=>{
 }).then(()=>{
   const bad={...pkg,files:[...pkg.files,{path:"index.html",content:"bad"}]};
   return assert.rejects(()=>client.createPublishPR(item,bad),/unexpected path/);
-}).then(()=>console.log("PASS: guarded GitHub PR publisher branch/files/PR/no-merge")).catch(e=>{console.error(e);process.exit(1)});
+}).then(()=>client.getPublishStatus(8)).then(status=>{assert.equal(status.ci.state,"success");assert.equal(status.merged,false);assert.equal(status.branch,"area-seo/article-plastic-formwork-maesai");}).then(()=>console.log("PASS: guarded GitHub PR publisher branch/files/PR/status/no-merge")).catch(e=>{console.error(e);process.exit(1)});
