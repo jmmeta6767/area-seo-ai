@@ -31,7 +31,10 @@ const history=id=>({version:1,snapshots:[{id,site:'https://example.com/',scanned
   const preview=await restore({backup:full,approvalStore:store,persistent:{configured:false},intelligence,qualityHistory,dryRun:true});
   assert.equal(preview.components.site_history.count,1);assert.equal(preview.components.quality_history.count,1);
   assert.equal(siteState.snapshots[0].id,'old-site');
-  const restored=await restore({backup:full,approvalStore:store,persistent:{configured:false},intelligence,qualityHistory,dryRun:false});
+  const beforeMismatch=clone(store.read());
+  await assert.rejects(()=>restore({backup:full,approvalStore:store,persistent:{configured:false},intelligence,qualityHistory,dryRun:false,expectedChecksum:'wrong'}),e=>e.status===409);
+  assert.deepEqual(store.read(),beforeMismatch);assert.equal(siteState.snapshots[0].id,'old-site');
+  const restored=await restore({backup:full,approvalStore:store,persistent:{configured:false},intelligence,qualityHistory,dryRun:false,expectedChecksum:preview.checksum});
   assert.equal(restored.restored,true);assert.equal(restored.durableTransaction,false);
   assert.equal(store.read()[0].id,'d2');assert.equal(siteState.snapshots[0].id,'restored-site');assert.equal(qualityState.items[0].id,'q1');
   assert.equal(store.allEvents().at(-1).event,'backup_restored');
