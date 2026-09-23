@@ -30,7 +30,8 @@ const publicPublisher=require("./lib/public-site-publisher");
 const prPublisher=require("./lib/github-pr-publisher").createClient();
 const adminAuth=require("./lib/admin-auth").createAdminAuth();
 const api=async(req,res,u)=>{try{
-if(req.method==="GET"&&u.pathname==="/api/admin/backup")return json(res,200,{schema_version:"2",exported_at:new Date().toISOString(),approvals:queueRead(),approval_audit:approvalStore.events(500),site_history:intelligence.history(),storage:intelligence.status()});\nif(req.method==="GET"&&u.pathname==="/api/admin/audit-log")return json(res,200,{items:approvalStore.events(Number(u.searchParams.get("limit")||100))});
+if(req.method==="GET"&&u.pathname==="/api/admin/backup")return json(res,200,{schema_version:"2",exported_at:new Date().toISOString(),approvals:queueRead(),approval_audit:approvalStore.events(500),site_history:intelligence.history(),storage:intelligence.status()});
+if(req.method==="GET"&&u.pathname==="/api/admin/audit-log")return json(res,200,{items:approvalStore.events(Number(u.searchParams.get("limit")||100))});
 if(req.method==="POST"&&u.pathname==="/api/seo/quality-review")return json(res,200,await qualityAuditor.reviewArticle(await body(req),gemini));
 if(req.method==="GET"&&u.pathname==="/api/intelligence/history")return json(res,200,{items:intelligence.history(),latest:intelligence.latest(),...intelligence.status()});
 if(req.method==="POST"&&u.pathname==="/api/intelligence/scan")return json(res,201,await intelligence.scan());
