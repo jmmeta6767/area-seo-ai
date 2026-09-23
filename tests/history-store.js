@@ -12,6 +12,7 @@ const fixture={version:1,snapshots:[{id:'first',site:'https://example.com/',scan
  const next=clone(fixture);next.snapshots[0].id='second';await store.save(next);assert.equal(writes,2);
  fs.rmSync(dir,{recursive:true});const restarted=createHistoryStore({dataDir:dir,persistent:database});await restarted.init();assert.equal(restarted.read().snapshots[0].id,'second');assert(fs.existsSync(path.join(dir,'site-history.json')));
  const returned=restarted.read();returned.snapshots.length=0;assert.equal(restarted.read().snapshots.length,1);
+ const replaced=clone(fixture);replaced.snapshots[0].id='restored';await restarted.replace(replaced);assert.equal(restarted.read().snapshots[0].id,'restored');assert.equal(saved.snapshots[0].id,'restored');await restarted.replace(next);
  fail=true;await assert.rejects(restarted.save(fixture),e=>e.status===503&&!e.message.includes('secret'));assert.equal(restarted.read().snapshots[0].id,'second');assert.equal(saved.snapshots[0].id,'second');assert(!restarted.status().storageDurable);assert.equal(JSON.parse(fs.readFileSync(path.join(dir,'site-history.json'))).snapshots[0].id,'second');
  fail=false;await restarted.save(fixture);assert(restarted.status().storageDurable);
  const cachePath=path.join(root,'not-a-directory');fs.writeFileSync(cachePath,'keep');const cacheFailure=createHistoryStore({dataDir:cachePath,persistent:database});await cacheFailure.init();await cacheFailure.save(next);assert(cacheFailure.status().storageDurable);assert(cacheFailure.status().storageCacheError);assert.equal(saved.snapshots[0].id,'second');
