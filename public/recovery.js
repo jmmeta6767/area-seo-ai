@@ -95,7 +95,7 @@
     if(!(candidate&&dryRun&&byId("restoreConfirmText").value.trim()==="RESTORE"))return;
     const btn=byId("confirmRestore");btn.disabled=true;byId("restoreState").textContent="กำลังกู้คืนข้อมูลที่ผ่าน Dry-run…";
     try{
-      const result=await call("/api/admin/restore",{method:"POST",body:JSON.stringify({backup:candidate,confirm:true})});
+      const result=await call("/api/admin/restore",{method:"POST",body:JSON.stringify({backup:candidate,confirm:true,expectedChecksum:dryRun.checksum})});
       if(result.checksum!==dryRun.checksum)throw Error("Checksum เปลี่ยนระหว่าง Dry-run และ Restore");
       byId("restoreState").textContent="กู้คืนสำเร็จ · "+summaryText(result).replaceAll("\n"," · ");
       candidate=null;dryRun=null;byId("restoreFile").value="";byId("restoreConfirmText").value="";byId("restoreConfirmText").disabled=true;byId("dryRunRestore").disabled=true;
