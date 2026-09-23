@@ -78,3 +78,26 @@ Accuracy assessment is based on the supplied content, not external fact checking
 The UI displays/downloads JSON, clears old reports after input edits, and refuses
 a response when the article changed during the request. Reports are not persisted
 as website scan history; export JSON to retain an individual content review.
+
+
+## Admin Security & Deployment Backup (v1.6)
+
+v1.6 adds a server-side HTTP Basic authentication gate for the private admin app.
+Set `REQUIRE_ADMIN_AUTH=true`, `ADMIN_USER`, and a strong `ADMIN_PASSWORD`.
+When authentication is required but credentials are missing, the application fails
+closed with HTTP 503. Invalid or missing credentials receive HTTP 401. The public
+`/api/health` endpoint exposes only boolean readiness flags and never returns secrets.
+
+All admin HTML, scripts, approval routes, Website Intelligence, Gemini actions and
+publisher-preflight routes are behind the same gate when enabled. Credential
+comparison uses fixed-length SHA-256 digests with timing-safe comparison. Secrets
+remain server-side and must be stored in Render environment variables, not GitHub.
+
+`GET /api/admin/backup` exports approval-queue data plus Website Intelligence
+history as JSON before a redeploy or migration. This is an export only: v1.6 does
+not add an overwrite/restore endpoint, avoiding accidental destructive imports.
+
+The Render blueprint intentionally declares `ADMIN_PASSWORD` with `sync: false`.
+Do not merge/deploy v1.6 until that secret is set for the target service. The free
+Render filesystem remains ephemeral; the backup endpoint reduces migration risk but
+does not make storage durable. Live Publisher remains locked.
