@@ -76,8 +76,8 @@ percentage is asserted. Mae Chan is context, not verified delivery coverage.
 Accuracy assessment is based on the supplied content, not external fact checking.
 
 The UI displays/downloads JSON, clears old reports after input edits, and refuses
-a response when the article changed during the request. Reports are not persisted
-as website scan history; export JSON to retain an individual content review.
+a response when the article changed during the request. Reports are retained separately as article quality history in v3.2; they are not
+website scan snapshots. Export JSON to keep a separate copy.
 
 
 ## Admin Security & Deployment Backup (v1.6)
@@ -312,3 +312,31 @@ alert; measured zero clicks still count as a real decline. Approval drafts retai
 the primary keyword supplied by the article workspace. Analytics clears the previous
 article's results when loading or failing, and ignores responses from older requests.
 These changes do not configure external credentials or enable admin login.
+
+
+## Article Quality History (v3.2)
+
+Successful five-category reviews retain their full validated JSON report, title and
+primary keyword. The last 100 reports are available in the Article Workspace history
+selector and through `GET /api/seo/quality-history` (summaries) and
+`GET /api/seo/quality-history/:id` (detail). Opening a historical report does not
+replace the current article or imply it has been reviewed. Export remains available.
+
+Storage uses `quality-history.json` with atomic local writes, or the PostgreSQL
+`quality_history` state key when DATABASE_URL is configured. Startup migrates valid
+local history only if the database has no saved quality history. Writes are serialized
+within the single server process and committed to the database before success. Invalid
+stored data is preserved and initialization fails closed. This is not a multi-writer
+store. The UI reports file-only storage explicitly; Render without persistent storage
+can lose that history during deploys.
+
+A completed AI review remains available to download if saving history fails: the
+response contains `history.saved:false` and a warning rather than claiming it was saved.
+Gemini or report-validation failures create no history entry. Admin backup includes
+`quality_history`; the existing approval restore endpoint does not restore this field.
+Readiness includes `quality_history_storage`. No provider credentials, authentication
+settings, approval status or publishing behavior are changed by this feature.
+
+Tests cover real review/list/detail/backup routes with mocked Gemini transport,
+concurrent saves, restart/migration, retention, database failure, cache failure and
+corrupt-data preservation. Live Gemini and PostgreSQL still need configured credentials.
