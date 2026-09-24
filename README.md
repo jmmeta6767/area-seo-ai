@@ -438,3 +438,25 @@ previous article issues as resolved. Failed pages are included in failed-page co
 and make the scan partial. Successful-page weights remain unchanged (onpage-1).
 Comparisons skip legacy non-2xx scores and use the last successful same-URL snapshot;
 old snapshots remain untouched.
+
+
+## Durable Storage Verification (v3.7)
+
+Storage readiness now verifies the actual durable state keys instead of treating a
+database connection alone as sufficient. PostgreSQL is considered fully durable only
+when `approval_queue`, `site_history`, and `quality_history` are all present in
+`area_seo_state`, the database connection is healthy, and no persistence error is
+active.
+
+`GET /api/admin/storage-health` returns the required/present/missing state keys plus
+state/audit row counts. The Recovery Center shows these missing keys directly so a
+partially initialized database cannot be mistaken for a complete migration.
+
+Schema-v3 backups now export the complete approval audit history. File mode uses the
+uncapped local audit stream; PostgreSQL mode reads the full durable audit table in
+chronological order. The ordinary audit-log viewer remains capped for UI safety.
+
+This release still does not connect DATABASE_URL by itself. Render must inject the
+database connection through its environment/Blueprint configuration. Until that
+happens, the service intentionally remains in file mode and reports
+`durable_state_complete` as a readiness blocker.
