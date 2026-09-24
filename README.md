@@ -428,3 +428,13 @@ The UI never displays database URLs, passwords, Google credentials, or GitHub to
 File-only Render deployments are clearly labeled as non-durable; PostgreSQL is shown
 as durable only when the storage-health endpoint reports both `durable:true` and
 `ready:true`.
+
+
+## HTTP Failure Scoring (v3.6.1)
+
+Non-2xx pages now have a null score and an explicit HTTP task. Their error-page
+markup cannot inflate the average, introduce duplicate metadata findings, or mark
+previous article issues as resolved. Failed pages are included in failed-page counts
+and make the scan partial. Successful-page weights remain unchanged (onpage-1).
+Comparisons skip legacy non-2xx scores and use the last successful same-URL snapshot;
+old snapshots remain untouched.
