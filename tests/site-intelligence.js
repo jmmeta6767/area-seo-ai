@@ -18,6 +18,12 @@ async function main(){
   assert.equal(damaged.score,75);assert(damaged.issues.some(x=>x.key==='indexable'));
   assert(!analyzePage(base,response(good().replace("alt='ไม้แบบ'","alt=''"))).issues.some(x=>x.key==='alt'));
   assert.equal(analyzePage(base,{error:'timeout'}).score,null);
+  for(const status of [301,404,429,500,503]){
+    const bad=analyzePage(base,{...response(good()),status});
+    assert.equal(bad.score,null);assert.equal(bad.status,status);assert.equal(bad.issues[0].key,'http');
+    assert.equal(bad.title,'');
+  }
+
   assert(analyzePage(base,response(good().replace('{"@type":"LocalBusiness"}','bad'))).issues.some(x=>x.key==='schema'));
   assert(analyzePage(base,response(good().replace("https://example.com/","https://evil.com/"))).issues.some(x=>x.key==='canonical-origin'));
   assert(!analyzePage(base,response(good().replace('</head>',"<!-- <meta name='robots' content='noindex'> --></head>"))).issues.some(x=>x.key==='indexable'));
@@ -31,6 +37,26 @@ async function main(){
     const restarted=createIntelligence({dataDir:dir,base,fetcher,cooldownMs:0});assert.equal(restarted.history().length,2);assert.equal(restarted.detail(first.id).average,90);
     const failed=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async()=>{throw Error('offline');}});let failure=await failed.scan();assert.equal(failure.average,null);assert.equal(failure.resolvedCount,0);assert.equal(failure.pages[0].delta,null);
     assert.equal((await restarted.scan()).pages[0].previousScore,100);
+    // HTTP errors must not inflate averages or resolve previous content issues.
+    let httpStatus=200;
+    const httpDir=path.join(dir,'http-errors');
+    const httpService=createIntelligence({dataDir:httpDir,base,cooldownMs:0,fetcher:async url=>{
+      if(url.endsWith('/robots.txt'))return response('User-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml');
+      if(url.endsWith('/sitemap.xml'))return response('<urlset><loc>https://example.com/broken</loc></urlset>');
+      return url.endsWith('/broken')?{...response(good().replace(/<meta name='description'[^>]+>/,'')),status:httpStatus}:response(good());
+    }});
+    const httpFirst=await httpService.scan();assert.equal(httpFirst.average,95);
+    httpStatus=404;const httpBad=await httpService.scan();
+    assert.equal(httpBad.average,100);assert.equal(httpBad.failedPages,1);assert(httpBad.partial);
+    const failedPage=httpBad.pages.find(p=>p.status===404);
+    assert.equal(failedPage.delta,null);assert.equal(failedPage.resolvedIssues.length,0);
+    assert.equal(httpBad.pages[0].resolvedIssues.includes('ชื่อหน้าซ้ำในชุดสแกน'),false);
+    // Exclude erroneous non-2xx scores saved by older app versions too.
+    const historyPath=path.join(httpDir,'site-history.json'),legacy=JSON.parse(fs.readFileSync(historyPath,'utf8'));
+    const legacyBad=legacy.snapshots[0].pages.find(p=>p.status===404);legacyBad.score=80;legacyBad.issues=[];
+    fs.writeFileSync(historyPath,JSON.stringify(legacy));
+    httpStatus=200;const recovered=await httpService.scan();
+    assert.equal(recovered.pages[1].previousScore,90);assert.equal(recovered.pages[1].delta,0);
     const limited=createIntelligence({dataDir:dir,base,cooldownMs:0,fetcher:async url=>url.endsWith('sitemap.xml')?response('<urlset>'+Array.from({length:120},(_,i)=>`<loc>https://example.com/p${i}</loc>`).join('')+'</urlset>'):response(good())});const capped=await limited.scan();assert.equal(capped.pages.length,100);assert.equal(capped.discovered,121);assert.equal(capped.partial,true);
     const childSeen=[];
     const maps={
