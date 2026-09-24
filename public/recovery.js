@@ -34,10 +34,11 @@
     badge.textContent="Checking storage…";badge.className="pill";
     try{
       const [ready,storage]=await Promise.all([call("/api/admin/readiness"),call("/api/admin/storage-health")]);
-      const durable=storage.durable===true&&storage.ready===true;
-      badge.textContent=durable?"● PostgreSQL durable":"● File storage · ยังไม่ถาวร";
+      const durable=storage.durable===true&&storage.ready===true&&storage.state?.complete===true;
+      badge.textContent=durable?"● PostgreSQL durable":"● "+(storage.kind==="postgres"?"PostgreSQL ยังไม่ครบ":"File storage · ยังไม่ถาวร");
       badge.className="pill "+(durable?"ok":"");
       const blockers=(ready.blockers||[]).join(", ")||"ไม่มี";
+      const present=(storage.state?.present||[]).join(", ")||"ไม่มี",missing=(storage.state?.missing||[]).join(", ")||"ไม่มี";
       health.textContent=[
         "ชนิด: "+(storage.kind||"unknown"),
         "Durable: "+(durable?"พร้อม":"ยังไม่พร้อม"),
@@ -45,6 +46,8 @@
         storage.version?"PostgreSQL: "+storage.version:"",
         storage.stateRows!==undefined?"State rows: "+storage.stateRows:"",
         storage.auditRows!==undefined?"Audit rows: "+storage.auditRows:"",
+        "State keys พร้อม: "+present,
+        "State keys ขาด: "+missing,
         "Readiness blockers: "+blockers
       ].filter(Boolean).join("\n");
     }catch(e){
