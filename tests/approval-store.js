@@ -11,6 +11,9 @@ try{
  assert.throws(()=>s.transition('d1','approved',['ready_for_review']),/Invalid status transition/);
  s.audit({event:'publish_pr_created',draftId:'d1',from:'approved',to:'publishing',detail:{pr:4}});
  const events=s.events();assert.equal(events.length,2);assert.equal(events[0].event,'publish_pr_created');assert.equal(events[1].event,'status_transition');
+ assert.equal(s.allEvents().length,2);assert.equal(s.allEvents()[0].event,'status_transition');assert.equal(s.allEvents()[1].event,'publish_pr_created');
+ for(let i=0;i<510;i++)s.audit({event:'bulk_'+i});
+ assert.equal(s.events(500).length,500);assert.equal(s.allEvents().length,512);
  fs.writeFileSync(s.queueFile,'{broken');
  assert.throws(()=>s.read(),/preserve data/);
  console.log('PASS: atomic approval persistence, guarded transitions, audit trail and corrupt-store fail-closed');
