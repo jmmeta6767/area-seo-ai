@@ -18,7 +18,7 @@ async function main(){
   const fetch=async(url,opts={})=>{
     calls.push({url,opts});
     if(url==='/api/admin/readiness')return response({blockers:['persistent_storage']});
-    if(url==='/api/admin/storage-health')return response({kind:'file',durable:false,ready:false});
+    if(url==='/api/admin/storage-health')return response({kind:'file',durable:false,ready:false,state:{present:[],missing:['approval_queue','site_history','quality_history'],complete:false}});
     if(url==='/api/admin/backup')return response(backup);
     if(url==='/api/admin/restore'){
       const body=JSON.parse(opts.body||'{}');
@@ -40,6 +40,7 @@ async function main(){
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../public/recovery.js'),'utf8'),context);
   await new Promise(r=>setImmediate(r));
   assert.match(el('recoveryReady').textContent,/File storage/);
+  assert.match(el('storageHealth').textContent,/quality_history/);
 
   const file={size:256,text:async()=>JSON.stringify(backup)};
   el('restoreFile').files=[file];
