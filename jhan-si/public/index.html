@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="th"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fc"><meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com; script-src 'self'; img-src 'self' data:; base-uri 'self'; object-src 'none'; form-action 'self'">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/style.css"><title>Affiliate & SEO Studio · AREA AI</title>
+</head><body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand"><span class="brandmark">a<span>✳</span></span><div><strong>JHAN <em>SI</em></strong><small>Affiliate + SEO AI</small></div></div>
+  <div class="sidecap">WORKSPACE</div>
+  <nav id="nav" aria-label="เมนูหลัก">
+    <button class="active" data-view="overview"><span>▦</span> ภาพรวม</button>
+    <button data-view="products"><span>◈</span> สินค้า Affiliate</button>
+    <button data-view="content"><span>✦</span> AI Content</button>
+    <button data-view="seo"><span>☷</span> SEO / AEO</button>
+    <button data-view="queue"><span>▤</span> คิวโพสต์</button>
+    <button data-view="analytics"><span>◴</span> Analytics</button>
+    <button data-view="settings"><span>⚙</span> ตั้งค่าร้าน</button>
+  </nav>
+  
+</aside>
+<main class="main">
+  <div class="topbar"><span class="eyebrow">JHAN SI / GROWTH WORKSPACE</span><div class="topright"><span class="status-dot"></span><span id="storageStatus">กำลังตรวจการจัดเก็บ</span><a class="previewlink" href="/shop" target="_blank" rel="noopener">ดูหน้าร้าน ↗</a></div></div>
+  <div class="mobilebrand">JHAN <b>SI</b></div>
+  <header class="heading"><div><span class="eyebrow">Affiliate Commerce & Content</span><h1 id="pageTitle">ภาพรวมระบบ</h1><p id="pageDesc">จัดการสินค้า คอนเทนต์ และ SEO จากที่เดียว</p></div><span class="version">V1.0 · Independent</span></header>
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <section data-panel="overview" class="panelview active">
+    <div class="metric-grid">
+      <article class="metric"><span>สินค้าทั้งหมด</span><strong id="metricProducts">—</strong><small>เฉพาะรายการที่บันทึกจริง</small><span class="metric-icon">◈</span></article>
+      <article class="metric"><span>คลิกลิงก์สินค้า</span><strong id="metricClicks">—</strong><small>นับจากหน้าร้านนี้</small><span class="metric-icon">↗</span></article>
+      <article class="metric"><span>บทความรอตรวจ</span><strong id="metricArticles">—</strong><small>ยังไม่ได้เผยแพร่</small><span class="metric-icon">☷</span></article>
+      <article class="metric"><span>ร่างโพสต์</span><strong id="metricPosts">—</strong><small>ยังไม่เชื่อม Facebook</small><span class="metric-icon">✦</span></article>
+    </div>
+    <div class="dual"><article class="surface spotlight"><span class="eyebrow">NEW · AFFILIATE SYSTEM</span><h2>หนึ่งระบบสำหรับสร้างรายได้จากคอนเทนต์</h2><p>นำเข้าสินค้าที่มีลิงก์จริง สร้างหน้าร้านสาธารณะ ให้ AI ช่วยร่างบทความ และวัดคลิกที่เกิดขึ้นจริง โดยไม่สร้างยอดขายสมมติ</p><button class="primary" data-jump="products">+ เพิ่มสินค้าแรก</button></article>
+      <article class="surface"><div class="rowhead"><h2>สถานะการเชื่อมต่อ</h2><span class="pill">Safety first</span></div><div id="connections" class="connection-list"></div></article></div>
+    <article class="surface"><div class="rowhead"><h2>เวิร์กโฟลว์การทำงาน</h2><span class="subtle">นำเข้า → ร่าง → ตรวจ → เผยแพร่</span></div><div class="workflow"><div><b>01</b><strong>เพิ่มสินค้าจริง</strong><span>Shopee / Lazada</span></div><div><b>02</b><strong>AI ช่วยเขียน</strong><span>Gemini ฝั่งเซิร์ฟเวอร์</span></div><div><b>03</b><strong>เจ้าของตรวจ</strong><span>ไม่สร้างรีวิวปลอม</span></div><div><b>04</b><strong>ปล่อยคอนเทนต์</strong><span>หลังผ่าน Gate</span></div></div></article>
+  </section>
+  <section data-panel="products" class="panelview">
+    <article class="surface"><div class="rowhead"><div><h2>นำเข้าสินค้าใหม่</h2><p class="subtle">ใช้ลิงก์ Affiliate จริงที่ได้รับสิทธิ์แล้วเท่านั้น</p></div><span class="pill">Manual import</span></div>
+      <form id="productForm" class="formgrid">
+        <label class="span2">ชื่อสินค้า<input name="title" required minlength="3" maxlength="150" placeholder="เช่น สว่านไร้สาย 20V รุ่น ABC"></label>
+        <label>ร้านต้นทาง<select name="platform"><option>Shopee</option><option>Lazada</option></select></label>
+        <label>ราคา (฿)<input name="price" type="number" min="0" max="10000000" step=".01" required placeholder="1290"></label>
+        <label class="span2">ลิงก์ Affiliate ที่ได้รับจริง<input name="url" type="url" required placeholder="https://shopee.co.th/..." inputmode="url"></label>
+        <label>หมวดหมู่<input name="category" maxlength="70" placeholder="เครื่องมือช่าง"></label>
+        <label>สถานะ<select name="published"><option value="false">เก็บเป็นฉบับร่าง</option><option value="true">แสดงบนหน้าร้าน</option></select></label>
+        <label class="span2">ข้อมูลสินค้า (เฉพาะข้อมูลที่ตรวจสอบแล้ว)<textarea name="description" maxlength="600" rows="2" placeholder="จุดเด่นที่ยืนยันได้จากหน้าสินค้าจริง"></textarea></label>
+        <div class="span2 formend"><button class="primary" type="submit">+ บันทึกสินค้า</button></div>
+      </form>
+    </article>
+    <article class="surface"><div class="rowhead"><h2>สินค้าของฉัน</h2><span id="productCount" class="pill">0 รายการ</span></div><div id="productList" class="product-list"></div></article>
+  </section>
+  <section data-panel="content" class="panelview">
+    <div class="dual"><article class="surface"><h2>AI Facebook Caption</h2><p class="subtle">สร้างแคปชั่นจากข้อมูลสินค้าที่บันทึกจริง ไม่มีรีวิวและโปรโมชันแต่งขึ้น</p>
+      <label>เลือกสินค้า<select id="captionProduct" class="selectProduct"></select></label><button id="generateCaption" class="primary">✦ ให้ Gemini ร่างแคปชั่น</button><label>แก้ไขก่อนบันทึก<textarea id="captionText" rows="8" placeholder="แคปชั่นจาก AI จะปรากฏที่นี่"></textarea></label>
+      <label>กำหนดวันโพสต์ (ยังไม่ส่งออก Facebook)<input id="postDate" type="datetime-local"></label><button id="savePost" class="secondary">บันทึกเข้าคิวร่าง</button>
+    </article><article class="surface info"><div class="symbol">✦</div><h2>AI สร้างอย่างมีความรับผิดชอบ</h2><p>AI เป็นผู้ช่วยร่าง ไม่ใช่ผู้ยืนยันข้อมูลจริง ข้อความราคา สเปก รีวิว โปรโมชัน และการรับประกันต้องให้เจ้าของตรวจสอบก่อนเผยแพร่</p><p>ระบบไม่อ้างว่ามีการตั้งเวลาโพสต์สำเร็จ จนกว่าจะเชื่อม Meta API และตัวประมวลผลคิวจริง</p></article></div>
+  </section>
+  <section data-panel="seo" class="panelview">
+    <div class="dual"><article class="surface"><h2>AI SEO / AEO Article</h2><p class="subtle">โครงสร้าง H1, H2, FAQ พร้อมความโปร่งใสเรื่อง Affiliate</p><label>สินค้า<select id="articleProduct" class="selectProduct"></select></label><button id="generateArticle" class="primary">✦ ให้ Gemini สร้างบทความ</button><label>หัวข้อบทความ<input id="articleTitle" maxlength="180" placeholder="หัวข้อ SEO"></label><label>เนื้อหาบทความ<textarea id="articleContent" rows="14"></textarea></label><button id="saveArticle" class="secondary">บันทึกร่างเพื่อรีวิว</button></article>
+    <article class="surface info"><div class="symbol">☷</div><h2>SEO/AEO สำหรับ Affiliate</h2><p>ระบบนี้ทำงานแยกจากธุรกิจอื่นโดยสมบูรณ์ บันทึกบทความ Affiliate เป็นฉบับร่างเพื่อให้เจ้าของตรวจสอบก่อนเผยแพร่</p><p class="subtle">ยังไม่มีการเผยแพร่บทความ Affiliate อัตโนมัติ</p></article></div>
+  </section>
+  <section data-panel="queue" class="panelview"><article class="surface"><div class="rowhead"><h2>คิวโพสต์ Facebook</h2><span class="pill warning">ยังไม่เชื่อม Meta API</span></div><p class="subtle">รายการนี้คือ Draft Queue เท่านั้น แม้กำหนดเวลาก็ยังไม่ถูกโพสต์จริง</p><div id="postList" class="stack"></div></article><article class="surface"><h2>บทความรอตรวจ</h2><div id="articleList" class="stack"></div></article></section>
+  <section data-panel="analytics" class="panelview"><div class="metric-grid"><article class="metric"><span>Outbound clicks</span><strong id="analyticsClicks">0</strong><small>คลิกสะสม</small></article><article class="metric"><span>ยอดขาย</span><strong>—</strong><small>ยังไม่ได้เชื่อม Conversion API</small></article><article class="metric"><span>ค่าคอมมิชชั่น</span><strong>—</strong><small>ยังไม่มีข้อมูลยืนยัน</small></article></div><article class="surface"><h2>จำนวนคลิกแยกตามสินค้า</h2><div id="clickList" class="stack"></div></article></section>
+  <section data-panel="settings" class="panelview"><div class="dual"><article class="surface"><h2>หน้าร้านสาธารณะ</h2><form id="shopForm"><label>ชื่อร้าน<input name="name" maxlength="90" required></label><label>คำอธิบายร้าน<textarea name="description" maxlength="240" rows="4"></textarea></label><button class="primary">บันทึกข้อมูลร้าน</button></form><p class="subtle">URL หน้าร้านที่ใช้งานได้คือ <a href="/shop" target="_blank" rel="noopener">/shop</a> ยังไม่ได้เปิด Custom Domain อัตโนมัติ</p></article><article class="surface"><h2>โครงสร้างและความปลอดภัย</h2><div id="storageDetail" class="stack"></div><p class="subtle">API Key อยู่ฝั่ง Server ไม่แสดงหรือเก็บในเบราว์เซอร์ ระบบ SEO เดิมและฐานข้อมูลเดิมไม่ถูกลบ</p></article></div></section>
+  <footer>ฌานเอสไอ · V4.0 staging candidate · ไม่แสดงยอดขายหรือข้อมูลผู้ซื้อที่ยังไม่ได้เชื่อม</footer>
+</main></div><script src="/app.js" defer></script></body></html>
