@@ -1,0 +1,16 @@
+{
+  "name": "jhan-si-affiliate-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Independent Thai affiliate and SEO studio",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js && node --check lib/store.js && node --check public/app.js && node --check public/shop.js && node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}
