@@ -16,6 +16,14 @@ const publicHeaders={'Cache-Control':'no-store','X-Content-Type-Options':'nosnif
 const htmlHeaders={'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'",...noStore};
 const json=(res,status,body,headers=noStore)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...headers});res.end(JSON.stringify(body))};
 const error=(status,message)=>Object.assign(new Error(message),{status});
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+function productHtml(product,host){
+ const title=escapeHtml(product.title),description=escapeHtml(product.description||'ดูข้อมูลและเงื่อนไขจากร้านค้าต้นทาง'),price=Number(product.price).toLocaleString('th-TH'),platform=escapeHtml(product.platform);
+ const canonical=process.env.PUBLIC_BASE_URL?process.env.PUBLIC_BASE_URL.replace(/\/$/,'')+'/p/'+product.id:'';
+ const schema={'@context':'https://schema.org','@type':'Product',name:product.title,description:product.description||undefined,offers:{'@type':'Offer',price:product.price,priceCurrency:'THB',url:canonical||undefined}};
+ return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' · ฌานเอสไอ</title><meta name="description" content="'+description+'">'+(canonical?'<link rel="canonical" href="'+escapeHtml(canonical)+'">':'')+'<link rel="stylesheet" href="/shop.css"><script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script></head><body><div class="wrap"><header class="header"><a href="/shop" class="brand"><span class="mark">ฌาน</span> เอสไอ</a><a href="/shop">← ดูสินค้าทั้งหมด</a></header><main><section class="hero"><span class="eyebrow">'+platform+'</span><h1>'+title+'</h1><p>'+description+'</p><strong class="price">฿'+price+'</strong><p><a class="buy" href="/go/'+product.id+'" target="_blank" rel="sponsored noopener noreferrer">ดูสินค้าและราคาอัปเดตที่ร้านต้นทาง ↗</a></p><p>ราคาที่แสดงเป็นข้อมูลที่ผู้ดูแลกรอกไว้ อาจเปลี่ยนแปลงได้</p><h2>ข้อมูลสินค้า</h2><p>'+description+'</p><h2>คำถามที่พบบ่อย</h2><h3>ซื้อสินค้าได้ที่ไหน?</h3><p>คลิกปุ่มไปยัง '+platform+' เพื่อดูรายละเอียดและสั่งซื้อกับผู้ขายโดยตรง</p><h3>ราคาและการรับประกันเป็นอย่างไร?</h3><p>โปรดตรวจสอบรายละเอียดล่าสุดจากผู้ขายก่อนสั่งซื้อ</p></section></main><footer><b>การเปิดเผย Affiliate</b><p>ลิงก์อาจเป็นลิงก์ Affiliate และร้านอาจได้รับค่าคอมมิชชั่นจากการซื้อสินค้า</p></footer></div></body></html>';
+}
+
 const secretMatch=(a,b)=>crypto.timingSafeEqual(crypto.createHash('sha256').update(String(a)).digest(),crypto.createHash('sha256').update(String(b)).digest());
 function authorized(req){
  if(!authReady)return false;
@@ -98,6 +106,10 @@ async function handler(req,res){
   if(req.method==='GET'&&/^\/go\/[0-9a-f-]{36}$/.test(p)){
    const target=await studio.click(p.split('/')[2]);res.writeHead(302,{'Location':target,...publicHeaders});res.end();return;
   }
+  if(req.method==='GET'&&/^\/p\/[0-9a-f-]{36}$/.test(p)){
+    const product=studio.getProduct(p.split('/')[2]);if(!product||!product.published)throw error(404,'Product unavailable');
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8',...htmlHeaders});res.end(productHtml(product));return;
+  }
   const adminRoute=p==='/admin'||p==='/app.js'||p.startsWith('/api/admin/');
   if(adminRoute&&!requireAdmin(req,res))return;
   if(p.startsWith('/api/admin/')&&!mutationAllowed(req))throw error(403,'Cross-site request rejected');
@@ -115,7 +127,7 @@ async function handler(req,res){
   if(req.method==='POST'&&actions[p])return json(res,201,await actions[p](await requestBody(req)));
   if(p.startsWith('/api/'))throw error(404,'API not found');
   if(req.method!=='GET'&&req.method!=='HEAD')throw error(405,'Method not allowed');
-  const files={'/':'shop.html','/shop':'shop.html','/admin':'index.html','/app.js':'app.js','/style.css':'style.css','/shop.js':'shop.js'};
+  const files={'/':'shop.html','/shop':'shop.html','/admin':'index.html','/app.js':'app.js','/style.css':'style.css','/shop.js':'shop.js','/shop.css':'shop.css'};
   const name=files[p];if(!name)throw error(404,'Not found');
   const ext=path.extname(name),mime=ext==='.js'?'text/javascript; charset=utf-8':ext==='.css'?'text/css; charset=utf-8':'text/html; charset=utf-8';
   const data=fs.readFileSync(path.join(root,name));
