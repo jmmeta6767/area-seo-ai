@@ -1,0 +1,25 @@
+name: Jhan SI standalone CI
+on:
+  push:
+    branches:
+      - feat/jhan-si-independent-app-20261028
+    paths:
+      - "jhan-si/**"
+      - ".github/workflows/jhan-si-ci.yml"
+  pull_request:
+    paths:
+      - "jhan-si/**"
+      - ".github/workflows/jhan-si-ci.yml"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jhan-si
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install --ignore-scripts
+      - run: npm test
