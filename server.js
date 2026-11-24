@@ -7,7 +7,7 @@ let persistenceReady=false,persistenceError=null;
 const mirror=x=>{if(persistent.configured&&persistenceReady)persistent.set("approval_queue",x).catch(e=>{persistenceError=e.message})};
 const queueRead=()=>approvalStore.read(),queueWrite=x=>{approvalStore.write(x);mirror(x)};
 const auditEvent=e=>{approvalStore.audit(e);if(persistent.configured&&persistenceReady)persistent.audit(e).catch(err=>{persistenceError=err.message})};
-async function initPersistence(){if(!persistent.configured){await intelligence.init();await qualityHistory.init();return;}await persistent.init();const saved=await persistent.get("approval_queue",null);if(Array.isArray(saved))approvalStore.write(saved);else await persistent.set("approval_queue",approvalStore.read());await intelligence.init();await qualityHistory.init();persistenceReady=true;persistenceError=null}
+async function initPersistence(){if(!persistent.configured){await intelligence.init();await qualityHistory.init();await partners.init();return;}await persistent.init();const saved=await persistent.get("approval_queue",null);if(Array.isArray(saved))approvalStore.write(saved);else await persistent.set("approval_queue",approvalStore.read());await intelligence.init();await qualityHistory.init();await partners.init();persistenceReady=true;persistenceError=null}
 const safeText=x=>String(x||"").replace(/[<>]/g,"").trim(),slugify=x=>safeText(x).toLowerCase().replace(/[^a-z0-9ก-๙]+/g,"-").replace(/^-|-$/g,"").slice(0,100);
 const escapeHtml=x=>String(x||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -37,10 +37,14 @@ const publicPublisher=require("./lib/public-site-publisher");
 const prPublisher=require("./lib/github-pr-publisher").createClient();
 const performanceLogic=require("./lib/performance-comparison");
 const googlePerformance=require("./lib/google-performance");
+const partners=require("./lib/partners").createPartners({dataDir,persistent});
 const adminAuth=require("./lib/admin-auth").createAdminAuth();
 const {mutationAllowed}=require("./lib/mutation-guard");
 const api=async(req,res,u)=>{try{
 if(!mutationAllowed(req))return json(res,403,{error:"Cross-site mutation rejected"});
+if(req.method==="GET"&&["/api/partners","/api/partners/backup"].includes(u.pathname))return json(res,200,{...partners.read(),storage:partners.status(),exportedAt:new Date().toISOString()});
+if(req.method==="POST"&&["/api/partners/partners","/api/partners/projects"].includes(u.pathname))return json(res,200,await partners.save(u.pathname.split("/")[3],await body(req)));
+if(req.method==="GET"&&/^\/api\/partners\/projects\/[^/]+\/draft$/.test(u.pathname))return json(res,200,partners.draft(u.pathname.split("/")[4]));
 if(req.method==="GET"&&u.pathname==="/api/admin/backup"){let audit=persistent.configured&&persistenceReady&&persistent.allEvents?await persistent.allEvents():approvalStore.allEvents();return json(res,200,{schema_version:"3",exported_at:new Date().toISOString(),approvals:queueRead(),approval_audit:audit,persistence:{configured:persistent.configured,ready:persistenceReady,kind:persistent.kind},site_history:intelligence.history(),site_history_full:intelligence.exportHistory(),quality_history:qualityHistory.exportHistory(),storage:intelligence.status()})}
 if(req.method==="GET"&&u.pathname==="/api/admin/audit-log"){let limit=Number(u.searchParams.get("limit")||100),items=persistent.configured&&persistenceReady?await persistent.events(limit):approvalStore.events(limit);return json(res,200,{source:persistent.configured&&persistenceReady?"postgres":"file",items})}
 if(req.method==="POST"&&u.pathname==="/api/admin/restore"){let x=await body(req,16*1024*1024),dryRun=x.confirm!==true;let result=await recovery.restore({backup:x.backup,approvalStore,persistent,intelligence,qualityHistory,dryRun,expectedChecksum:x.expectedChecksum||null});if(!dryRun){persistenceReady=persistent.configured;persistenceError=null}return json(res,200,result)}
