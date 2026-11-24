@@ -10,5 +10,8 @@
  function download(value,name){const u=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
  $('backup').onclick=async()=>{try{download(await api('/backup'),'area-partners-backup.json')}catch(e){status(e.message)}};
  $('draft').onclick=async()=>{clearDraft();const id=$('projectEdit').value;if(!id)return status('เลือกโครงการที่บันทึกแล้วก่อน');try{draft=await api('/projects/'+encodeURIComponent(id)+'/draft');$('preview').textContent=draft.content+'\n\n'+draft.limitations.join('\n');$('download').disabled=false}catch(e){status(e.message)}};
+ $('profilePreview').onclick=()=>{const id=$('partnerEdit').value;if(!id)return status('เลือกคู่ค้าที่บันทึกแล้วก่อน');window.open('/api/partners/partners/'+encodeURIComponent(id)+'/preview','_blank','noopener')};
+ $('projectPreview').onclick=()=>{const id=$('projectEdit').value;if(!id)return status('เลือกโครงการที่บันทึกแล้วก่อน');window.open('/api/partners/projects/'+encodeURIComponent(id)+'/preview','_blank','noopener')};
+ $('openWorkspace').onclick=()=>{const id=$('projectEdit').value;if(!id)return status('เลือกโครงการที่บันทึกแล้วก่อน');location.href='/?partnerProject='+encodeURIComponent(id)};
  $('download').onclick=()=>{if(draft)download(draft,'area-project-draft.json')};refresh().catch(e=>status(e.message));
 })();

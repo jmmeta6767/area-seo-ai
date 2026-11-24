@@ -127,11 +127,11 @@ async function main() {
   // Execute the real browser script with a small DOM harness to verify Auto Fix wiring.
   const elements = new Map();
   const el = id=>{
-    if(!elements.has(id)) elements.set(id,{value:'',textContent:'',className:'',replaceChildren(){},appendChild(){}});
+    if(!elements.has(id)) elements.set(id,{value:'',options:[],add(x){this.options.push(x)},textContent:'',className:'',replaceChildren(){},appendChild(){}});
     return elements.get(id);
   };
   let sent;
-  const context = vm.createContext({document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
+  const context = vm.createContext({Option:function(label,value){this.value=value;this.textContent=label},URLSearchParams,location:{search:''},document:{getElementById:el}, window:{}, fetch:async(url, opts)=>{
     let data={};
     if(url==='/api/health') data={version:'3.7.0'};
     if(url==='/api/approval') data={items:[]};
