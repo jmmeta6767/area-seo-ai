@@ -460,3 +460,11 @@ This release still does not connect DATABASE_URL by itself. Render must inject t
 database connection through its environment/Blueprint configuration. Until that
 happens, the service intentionally remains in file mode and reports
 `durable_state_complete` as a readiness blocker.
+
+## Partner profiles, backlinks and exact-keyword reporting
+
+Open `/partners.html` behind admin authentication. Save actual contractor/project data and publication permission first. The profile package button reads the current public repository source; the confirm checkbox creates a PR containing the profile, directory, portfolio link and both sitemap inputs. It never merges. Withdrawal requires a known unchanged generated profile and creates another PR; review any existing update PRs and independent article mentions separately.
+
+Backlink checks are manual, HTTPS/public-address-only and bounded; failed fetches are not reported as missing links. The formwork performance button reads real configured GA4/Search Console data for equal 7/28-day windows, with an exact query filter for `ไม้แบบให้เช่าแม่สาย`. Recent three days are excluded; missing position is not zero. Set `PUBLIC_SITE_URL=https://areamaibab.com` in the deployed environment. This change does not provision Google access or claim a ranking increase.
+
+Partner exports include publication/link metadata and remain separate from the existing full backup/restore UI. See `docs/PARTNER-MODULE.md` for release checks and limitations.
