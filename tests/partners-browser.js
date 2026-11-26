@@ -23,7 +23,7 @@ const {server,initPersistence}=require('../server');
   await page.locator('#projectForm [name=equipment]').fill('ไม้แบบเสา 30 ซม.');
   await page.locator('#projectForm [name=projectConsent]').check();
   const save=page.waitForResponse(r=>r.url().endsWith('/api/partners/projects')&&r.request().method()==='POST');
-  await page.locator('#projectForm button').click();await save;await page.waitForFunction(()=>document.getElementById('projectEdit').options.length>1);
+  await page.locator('#projectForm button').click();await save;await page.waitForFunction(title=>Array.from(document.getElementById('projectEdit').options).some(o=>o.textContent===title),'หน้างานแม่สาย '+viewport.width);assert.equal(await page.locator('#partnerEdit').inputValue(),partnerId);assert.equal(await page.locator('#projectForm [name=partnerId]').inputValue(),partnerId);
   const projectId=await page.locator('#projectEdit option').last().getAttribute('value');await page.locator('#projectEdit').selectOption(projectId);
   await page.locator('#draft').click();await page.waitForFunction(()=>!document.getElementById('download').disabled);
   assert((await page.locator('#preview').textContent()).includes('30 ซม.'));
@@ -34,7 +34,7 @@ const {server,initPersistence}=require('../server');
   await page.locator('#linkForm button').click();await page.waitForFunction(()=>document.getElementById('linkInventory').textContent.includes('ยังไม่ตรวจ'));
   await page.locator('#loadPerformance').click();await page.waitForFunction(()=>document.getElementById('performanceReport').textContent.includes('เชื่อม'));
 
-  const popupPromise=page.waitForEvent('popup');await page.locator('#profilePreview').click();const popup=await popupPromise;await popup.waitForLoadState();assert((await popup.locator('h1').textContent()).includes('ทีมทดสอบ'));await popup.close();
+  const popupPromise=context.waitForEvent('page');await page.locator('#profilePreview').click();const popup=await popupPromise;await popup.waitForLoadState();assert((await popup.locator('h1').textContent()).includes('ทีมทดสอบ'));await popup.close();
   await page.locator('#openWorkspace').click();await page.waitForFunction(()=>document.getElementById('body')?.value.includes('30 ซม.'));
   assert((await page.locator('#slug').inputValue()).includes(projectId));assert.deepEqual(errors,[]);
   await context.close();console.log('Partner browser workflow PASS '+viewport.width+'px');
