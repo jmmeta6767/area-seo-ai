@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createPartners}=require('../lib/partners');
+(async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'partner-recovery-'));try{
+const store=createPartners({dataDir:dir});await store.init();
+const p=await store.save('partners',{name:'ทีมทดสอบ',relationship:'partner',consent:true,consentNote:'อนุญาต'});
+await store.save('projects',{partnerId:p.id,title:'โครงการจริง',projectConsent:true});
+const backup=store.read(),before=fs.readFileSync(path.join(dir,'partners.json'),'utf8');
+const checked=await store.restore(backup);assert.equal(checked.dryRun,true);assert.equal(checked.consentReset,true);assert.equal(checked.counts.projects,1);assert.equal(fs.readFileSync(path.join(dir,'partners.json'),'utf8'),before);
+await assert.rejects(store.restore(backup,{confirm:true}),{status:409});
+await store.save('partners',{name:'รายการเพิ่มหลังตรวจ',relationship:'customer'});
+await assert.rejects(store.restore(backup,{confirm:true,expectedChecksum:checked.checksum,expectedCurrentChecksum:checked.currentChecksum}),{status:409});assert.equal(store.read().partners.length,2);
+const check=await store.restore(backup);
+await assert.rejects(store.restore({...backup,partners:[...backup.partners,...backup.partners]}));
+await assert.rejects(store.restore({...backup,projects:[{id:'bad',partnerId:'missing',title:'bad'}]}));
+await assert.rejects(store.restore({...backup,partners:Array(2001).fill(p)}));
+const result=await store.restore(backup,{confirm:true,expectedChecksum:check.checksum,expectedCurrentChecksum:check.currentChecksum});assert.equal(result.restored,true);assert.equal(store.read().partners.length,1);assert.equal(store.read().partners[0].consent,false);assert.equal(store.read().projects[0].projectConsent,false);assert.throws(()=>store.draft(backup.projects[0].id),/ยินยอม/);
+const restart=createPartners({dataDir:dir});await restart.init();assert.deepEqual(restart.read(),store.read());
+const db={configured:true,get:async()=>backup,set:async()=>{throw Error('DB unavailable')}};const failed=createPartners({dataDir:dir,persistent:db});await failed.init();const dry=await failed.restore(backup);await assert.rejects(failed.restore(backup,{confirm:true,expectedChecksum:dry.checksum,expectedCurrentChecksum:dry.currentChecksum}),/unavailable/);assert.deepEqual(failed.read(),backup);
+console.log('Partner recovery: dry-run, stale state, validation, consent reset, restart and DB failure PASS');
+}finally{fs.rmSync(dir,{recursive:true,force:true})}})().catch(e=>{console.error(e);process.exitCode=1});

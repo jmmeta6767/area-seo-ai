@@ -37,6 +37,18 @@ const {server,initPersistence}=require('../server');
   const popupPromise=context.waitForEvent('page');await page.locator('#profilePreview').click();const popup=await popupPromise;await popup.waitForLoadState();assert((await popup.locator('h1').textContent()).includes('ทีมทดสอบ'));await popup.close();
   await page.locator('#openWorkspace').click();await page.waitForFunction(()=>document.getElementById('body')?.value.includes('30 ซม.'));
   assert((await page.locator('#slug').inputValue()).includes(projectId));assert.deepEqual(errors,[]);
+  await page.goto(base+'/partners.html');
+  const backup=await (await context.request.get(base+'/api/partners/backup')).json();
+  await page.locator('#restoreFile').setInputFiles({name:'partners-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+  await page.locator('#checkRestore').click();await page.waitForFunction(()=>document.getElementById('restoreReport').textContent.includes('พร้อมตรวจยืนยัน'));
+  assert.equal(await page.locator('#restorePartners').isEnabled(),false);
+  await page.locator('#restoreConfirm').check();
+  const restored=page.waitForResponse(r=>r.url().endsWith('/api/partners/restore')&&r.request().postDataJSON()?.confirm===true);
+  await page.locator('#restorePartners').click();assert.equal((await restored).status(),200);
+  await page.waitForFunction(()=>document.getElementById('status').textContent.includes('โครงการ'));
+  const recovered=await (await context.request.get(base+'/api/partners')).json();
+  assert.equal(recovered.partners.length,backup.partners.length);assert(recovered.partners.every(p=>p.consent===false));assert(recovered.projects.every(p=>p.projectConsent===false));
+  assert.deepEqual(errors,[]);
   await context.close();console.log('Partner browser workflow PASS '+viewport.width+'px');
  }
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));fs.rmSync(process.env.DATA_DIR,{recursive:true,force:true})}
