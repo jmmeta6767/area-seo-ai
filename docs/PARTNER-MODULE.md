@@ -1,0 +1,47 @@
+# Partner and project module
+
+Base: area-seo-ai main f61112c. Keep the public website and its data separate.
+
+## Delivered
+- P0: repository review; existing admin authentication and same-origin mutation gate.
+- P1: partner registry, relationship, active state, publication consent and evidence note.
+- P2: multiple projects per partner, actual equipment and location, original image URL/alt, project permission and sponsorship disclosure.
+- P3: private noindex profile/project previews, deterministic Thai draft, JSON export and direct transfer into Article Workspace. Permission evidence is excluded from workspace data. Human metadata review and existing SEO audit remain required.
+- P4 foundation: approval records retain project ID and SHA-256 source reference. Queue creation, human approval and publisher preflight reject withdrawn or changed sources. Source-read completion rechecks before package generation. Existing three-file public article package includes an escaped contractor/contact section with HTTPS links and sponsored rel/disclosure when applicable.
+- Serialized database-first writes to the existing PostgreSQL state table, atomic local file fallback, corrupt-file failure and separate authenticated partner backup download.
+
+## Remaining release phases
+- P4: publish dedicated public profiles, maintain project/profile cross-links and add withdrawal/removal PR workflow for already-published content.
+- P5: backlink inventory and bounded HTTPS link health checks, contact click measurement. Reciprocal links remain optional; no ranking guarantees.
+- P6: staging browser/iPhone QA, live PostgreSQL verification, backup and production release gate before merge/deploy.
+
+## Validation
+`npm test` covers persistence, consent, HTTPS enforcement, sponsor links, concurrency, DB failure, corrupt-file preservation, HTTP authentication/CSRF, workspace and preview routes, approval withdrawal rejection, source changes, private evidence omission, escaped HTML and publisher rendering.
+
+Browser workflow: `AREA_BROWSER=chromium|webkit node tests/partners-browser.js` requires Playwright browsers and runs create/edit/draft/profile/workspace checks at 390px and 1440px. CHROMIUM_PATH optionally overrides the Chromium executable. Saving preserves the selected partner/project and form values; CI asserts this before opening the profile. CI results are required for browser readiness; live database and staging remain separate checks.
+
+## Current limits
+Single process, maximum 2,000 records per collection. Image references only; no upload. Partner backup is separate from full schema-v3 backup/restore. The partner recovery UI validates a backup before confirmation, binds both backup and current-state checksums, and serializes replacement with normal edits. Restored partner/project publication consent is always disabled and must be obtained again; backlink checks are cleared. Existing public pages are not withdrawn by restoring. Permission withdrawal blocks new drafts/approval/publisher package creation but cannot retract exported copies, already-open PRs or published pages. Review existing PRs and published content separately after withdrawal. External URLs are not fetched automatically. Dedicated profiles remain private admin previews; publishing runs through existing human-reviewed article PRs only. No production deployment has been performed.
+
+## P4/P5 implementation — 25 November 2026
+
+- Profile publishing produces an atomic five-file PR: partner UUID page, partners.html directory, portfolio discovery link, sitemap.xml and sitemap.template.xml. Consent is checked before branch/PR creation; private permission evidence is never included in public HTML. Existing manually-owned files are rejected. Profiles are limited to 50 consented projects.
+- Profile withdrawal creates a separate reviewable PR deleting only the generated profile and removing its directory/sitemap entries. It refuses to overwrite a profile whose content hash changed after the last recorded publication. This does not retract independent article mentions, externally shared copies or already-open update PRs; those require review/cancellation separately.
+- Backlink inventory records explicit public HTTPS source pages and AREA destination pages. On-demand checks use public DNS/IP guards, port 443 only, a 2 MB response cap, 12-second request timeout, at most three redirects on the same origin and at most three checks concurrently. Results distinguish found/no_link/http_error/fetch_failed; they do not assert link quality, indexing or rankings. JavaScript-generated links are not inspected. Backlinks remain optional.
+- /api/seo/formwork-performance?days=7|28 compares equal adjacent windows, excludes the latest three days, and reads the exact keyword ไม้แบบให้เช่าแม่สาย for /formwork.html. Metrics come from live configured Google reporting only. No-impression position/CTR are null. No synthetic production ranking data, confirmed rental inference or causal uplift claim is made.
+- Profile AREA phone/LINE links use the existing consent-aware public app click tracking. These are interest events, not confirmed rental bookings. The new report does not yet aggregate partner-specific contact events.
+- PUBLIC_SITE_URL source defaults now use https://areamaibab.com. Deployed environment values still require verification; this commit does not change live secrets or promise a live connection.
+
+### Validation and release boundary
+Local npm test passes the existing suites and new profile/withdrawal/path guards, stale consent, link IP guards, persistence and reporting cases. A QA-only profile plus directory inserted into a copy of the public site passes the 57-page site validator, search, fragment, AEO and performance budget gates. No QA contractor/profile was published to the real repository. CI now runs the partner create/edit/link inventory/workspace workflow at mobile and desktop sizes on Chromium and WebKit; live CI results must be recorded before release.
+
+Public-site PR #221 was merged as 050b2b0b45bdbd3f4a6ff200a8251c6e7f6ab932; current main CI, automatic deploy and exact-SHA production verification are separate release checks. Partner module PR #37 is not deployed by this source change. Live database verification, partner backup/restore and staging remain required before admin rollout. Google reports need the configured account and data from the actual publication dates before outcome evaluation.
+
+
+## P6 recovery and live readiness — 26 November 2026
+
+Added `/api/partners/restore` with non-writing dry-run, counts, explicit confirmation, backup/current-state checksum guards and serialized DB-first replacement. Invalid relationships, duplicate records, oversized collections and unsafe links are rejected. Failed database writes preserve current in-memory state. Authentication and same-origin checks apply. Recovery includes partner/project/link/publication metadata and deliberately resets publication consent; it does not replace the main schema-v3 backup.
+
+Live service `area-seo-ai-8ilh.onrender.com` remains at main `f61112c3f68078227d9cb120039b09807eb4b379`. Health reports file-only ephemeral storage, no configured/enforced admin authentication, no GitHub publisher or direct Google reporting, and the legacy public-site URL. The confirmed My Workspace has no Render PostgreSQL instance. A read-only schema-v3 backup was exported at 2026-11-26T10:58:29.920Z: approvals, audit, site history and quality history were empty in that export. This does not establish whether data existed before earlier restarts.
+
+Do not merge this auto-deploying admin PR until durable storage and admin access are configured, restore/restart is verified in staging, and live readiness passes. No live data or environment was changed during this inspection. Public SEO PR #221 production verification remains separate and passed.
